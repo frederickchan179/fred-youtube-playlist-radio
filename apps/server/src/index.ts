@@ -28,6 +28,7 @@ import {
 
 const repoRoot = resolveRepoRoot(import.meta.url)
 const PORT = Number(process.env.PORT ?? 8787)
+const HOST = process.env.HOST ?? '127.0.0.1'
 
 type ImportJob = {
   id: string
@@ -158,12 +159,18 @@ const app = new Hono()
 app.use(
   '*',
   cors({
-    origin: ['http://127.0.0.1:5173', 'http://localhost:5173'],
+    origin: [
+      'http://127.0.0.1:5173',
+      'http://localhost:5173',
+      'http://fred-radio.lndo.site',
+      'https://fred-radio.lndo.site',
+    ],
     allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
   }),
 )
 
+app.get('/', (c) => c.text('ok'))
 app.get('/api/health', (c) => c.json({ ok: true }))
 
 app.get('/api/playlists', async (c) => {
@@ -381,7 +388,7 @@ app.get('/api/playlists/:id/media/:videoId', async (c) => {
 
 await mkdir(playlistsRoot(repoRoot), { recursive: true })
 
-console.log(`Radio API → http://127.0.0.1:${PORT}`)
+console.log(`Radio API → http://${HOST}:${PORT}`)
 console.log(`Library   → ${playlistsRoot(repoRoot)}`)
 
-serve({ fetch: app.fetch, hostname: '127.0.0.1', port: PORT })
+serve({ fetch: app.fetch, hostname: HOST, port: PORT })

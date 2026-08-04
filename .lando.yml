@@ -1,0 +1,40 @@
+name: fred-youtube-playlist-radio
+
+services:
+  appserver:
+    type: node:24
+    # Vite is the only public HTTP process. API is reached via Vite /api → :8787.
+    port: 5173
+    ssl: true
+    command: /bin/sh -lc 'corepack enable && corepack prepare pnpm@11.13.0 --activate && if [ ! -d node_modules ]; then pnpm install --force; fi; pnpm dev:lando'
+    overrides:
+      environment:
+        CI: "true"
+        npm_config_confirm_modules_purge: "false"
+        HOST: "0.0.0.0"
+        PORT: "8787"
+        LANDO: "ON"
+    build_as_root:
+      - apt-get update -y
+      - apt-get install -y ffmpeg python3-pip
+      - npm install -g pnpm@11.13.0
+      - pip3 install --break-system-packages --no-cache-dir yt-dlp
+
+proxy:
+  appserver:
+    # Explicit port so Traefik hits Vite, not the unused SSL container port.
+    - fred-radio.lndo.site:5173
+
+tooling:
+  setup:
+    service: appserver
+    cmd: /bin/sh -lc 'corepack enable && corepack prepare pnpm@11.13.0 --activate && CI=true pnpm install --force'
+  typecheck:
+    service: appserver
+    cmd: /bin/sh -lc 'corepack enable && corepack prepare pnpm@11.13.0 --activate && pnpm typecheck'
+  import:
+    service: appserver
+    cmd: /bin/sh -lc 'corepack enable && corepack prepare pnpm@11.13.0 --activate && pnpm import -- "$@"'
+  sync:
+    service: appserver
+    cmd: /bin/sh -lc 'corepack enable && corepack prepare pnpm@11.13.0 --activate && pnpm sync "$@"'

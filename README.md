@@ -38,3 +38,16 @@ pnpm sync
 - YouTube is used only as an **import source**. Playback is local files.
 - Respect copyright and YouTube ToS — personal private use only.
 - Cloud sync / Firebase is intentionally out of scope for now.
+
+## Lando (isolated local domain)
+
+If you want to avoid local port conflicts, run via Lando:
+
+```bash
+lando rebuild -y
+lando start
+```
+
+- App: [https://fred-radio.lndo.site](https://fred-radio.lndo.site)
+
+API is served through the same origin at `/api` (Vite proxy → Node on `:8787` inside the container).
