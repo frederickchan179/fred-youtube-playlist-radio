@@ -19,7 +19,7 @@ Personal local-first YouTube playlist radio. YouTube is **import only**. Playbac
 ## Locked UX
 
 - Dark listening room + **physical** turntable. No cartoon chrome, no mystery knobs, no 3D mouse-tilt
-- Layout: header overlay (brand + import only), centered machine, **pressing bin** at the bottom. Click a jacket to put it on the platter **and open its sleeve** (track list rises from the bin). Click the same jacket again to close. No separate Crate button in the header — the list belongs to the album. Title lives **inside the console**, never over sleeves
+- Layout: header overlay is brand only. Centered machine, **pressing bin** at the bottom. Click a jacket to put it on the platter **and open its sleeve**. Click the same jacket again to close. **Acquire is an empty jacket** at the end of the bin — not a header button. Title lives **inside the console**, never over sleeves
 - Transport only: Prev / Play-Pause / Next / Shuffle. Vinyl click = play/pause. Drag grooves **or** the machined cue slider under the timer to seek
 - Do **not** bring back: 33/45 switch, Stop, dummy 45 puck, dummy rotary, extra unlabeled hardware
 - Import modal uses `.panel` + `.field` + `.hw-btn` (`.plinth` was removed — do not revive it as the modal shell)

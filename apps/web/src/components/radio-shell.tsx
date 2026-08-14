@@ -155,9 +155,6 @@ export const RadioShell = ({
             {analogueTheme.tagline}
           </p>
         </div>
-        <div className="pointer-events-auto flex items-center gap-2">
-          <ImportFlow onImported={onImported} />
-        </div>
       </header>
 
       <div className="deck-slot">
@@ -246,6 +243,14 @@ export const RadioShell = ({
         }}
         onSynced={onSynced}
         error={error}
+        acquire={
+          <ImportFlow
+            onImported={(id) => {
+              onImported(id)
+              setSleeveOpen(true)
+            }}
+          />
+        }
       >
         <Liner
           open={sleeveOpen}

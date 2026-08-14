@@ -9,6 +9,7 @@ type Props = {
   onSelect: (id: string) => void
   onSynced: (id: string) => void
   error: string | null
+  acquire?: ReactNode
   children?: ReactNode
 }
 
@@ -19,6 +20,7 @@ export const PressingBin = ({
   onSelect,
   onSynced,
   error,
+  acquire,
   children,
 }: Props) => {
   const railRef = useRef<HTMLDivElement | null>(null)
@@ -56,71 +58,71 @@ export const PressingBin = ({
       {children}
       <div className="bin-shelf" aria-hidden />
       <div ref={railRef} className="sleeve-rail">
-        {playlists.length === 0 ? (
+        {playlists.length === 0 && error ? (
           <p
-            className="px-1 py-8 text-[0.68rem] uppercase"
+            className="self-center px-1 text-[0.68rem] uppercase"
             style={{
               fontFamily: 'var(--font-mono)',
               letterSpacing: '0.18em',
-              color: error ? 'var(--accent)' : 'var(--muted)',
+              color: 'var(--accent)',
             }}
           >
-            {error ?? 'Acquire a pressing to fill the bin'}
+            {error}
           </p>
-        ) : (
-          playlists.map((playlist) => {
-            const active = playlist.playlistId === activePlaylistId
-            const art = playlist.coverVideoId
-              ? mediaUrl(playlist.playlistId, playlist.coverVideoId, 'thumb')
-              : null
-            const cuts =
-              playlist.trackCount === 1
-                ? '1 cut'
-                : `${playlist.trackCount} cuts`
-            const cue = active
-              ? sleeveOpen
-                ? 'Inside the sleeve'
-                : 'Open sleeve'
-              : cuts
+        ) : null}
+        {playlists.map((playlist) => {
+          const active = playlist.playlistId === activePlaylistId
+          const art = playlist.coverVideoId
+            ? mediaUrl(playlist.playlistId, playlist.coverVideoId, 'thumb')
+            : null
+          const cuts =
+            playlist.trackCount === 1
+              ? '1 cut'
+              : `${playlist.trackCount} cuts`
+          const cue = active
+            ? sleeveOpen
+              ? 'Inside the sleeve'
+              : 'Open sleeve'
+            : cuts
 
-            return (
-              <div key={playlist.playlistId} className="pressing-slot">
-                <button
-                  type="button"
-                  onClick={() => onSelect(playlist.playlistId)}
-                  className="pressing"
-                  data-active={active ? 'true' : 'false'}
-                  aria-current={active ? 'true' : undefined}
-                  aria-expanded={active ? sleeveOpen : undefined}
-                  aria-label={`${playlist.title}, ${cue}`}
-                >
-                  <span className="pressing-vinyl" aria-hidden />
-                  <span className="pressing-jacket">
-                    {art ? (
-                      <img src={art} alt="" className="pressing-art" />
-                    ) : (
-                      <span className="pressing-blank">{playlist.title}</span>
-                    )}
-                    <span className="pressing-board" aria-hidden />
-                    <span className="pressing-sticker">
-                      <span className="pressing-title">{playlist.title}</span>
-                      <span className="pressing-meta">{cue}</span>
-                    </span>
+          return (
+            <div key={playlist.playlistId} className="pressing-slot">
+              <button
+                type="button"
+                onClick={() => onSelect(playlist.playlistId)}
+                className="pressing"
+                data-active={active ? 'true' : 'false'}
+                aria-current={active ? 'true' : undefined}
+                aria-expanded={active ? sleeveOpen : undefined}
+                aria-label={`${playlist.title}, ${cue}`}
+              >
+                <span className="pressing-vinyl" aria-hidden />
+                <span className="pressing-jacket">
+                  {art ? (
+                    <img src={art} alt="" className="pressing-art" />
+                  ) : (
+                    <span className="pressing-blank">{playlist.title}</span>
+                  )}
+                  <span className="pressing-board" aria-hidden />
+                  <span className="pressing-sticker">
+                    <span className="pressing-title">{playlist.title}</span>
+                    <span className="pressing-meta">{cue}</span>
                   </span>
-                </button>
-                <div className="pressing-pin">
-                  <SyncPlaylistButton
-                    playlistId={playlist.playlistId}
-                    playlistTitle={playlist.title}
-                    canSync={playlist.canSync}
-                    onSynced={onSynced}
-                    variant="pin"
-                  />
-                </div>
+                </span>
+              </button>
+              <div className="pressing-pin">
+                <SyncPlaylistButton
+                  playlistId={playlist.playlistId}
+                  playlistTitle={playlist.title}
+                  canSync={playlist.canSync}
+                  onSynced={onSynced}
+                  variant="pin"
+                />
               </div>
-            )
-          })
-        )}
+            </div>
+          )
+        })}
+        {acquire}
       </div>
     </div>
   )
