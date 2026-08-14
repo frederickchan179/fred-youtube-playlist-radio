@@ -252,7 +252,7 @@ button {
   flex: 1;
   min-height: 0;
   place-items: center;
-  padding: 4.15rem 1.15rem 0.35rem 5.4rem;
+  padding: 4.15rem 4.8rem 0.35rem 5.4rem;
 }
 
 .desk-pressing {
@@ -275,10 +275,53 @@ button {
 
 .desk-pressing:hover .pressing-jacket,
 .desk-pressing[aria-expanded='true'] .pressing-jacket {
-  rotate: 0deg;
   box-shadow:
     0 18px 28px rgb(0 0 0 / 0.5),
     inset 0 0 0 1px rgb(255 220 180 / 0.18);
+}
+
+.seven-stack {
+  position: absolute;
+  right: max(0.4rem, calc(50% - min(37rem, 48vw) - 3.5rem));
+  bottom: 15%;
+  z-index: 12;
+  width: 4.4rem;
+  height: 5.4rem;
+}
+
+.seven-inch {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3.85rem;
+  padding: 0;
+  aspect-ratio: 1;
+  filter: drop-shadow(4px 8px 10px rgb(0 0 0 / 0.4));
+}
+
+.seven-disc {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #2a1818 0 28%, #0a0908 100%);
+  box-shadow:
+    inset 0 0 0 1.2px rgb(255 255 255 / 0.12),
+    inset 0 0 0 5px rgb(0 0 0 / 0.45);
+}
+
+.seven-label {
+  position: absolute;
+  inset: 29%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.seven-inch:hover {
+  z-index: 8;
 }
 
 .deck {
@@ -724,13 +767,24 @@ button {
 
 @media (max-width: 960px) {
   .deck-slot {
-    padding: 4.4rem 0.85rem 0.75rem 4.6rem;
+    padding: 4.4rem 4.2rem 0.75rem 4.6rem;
   }
 
   .desk-pressing {
     left: 0.4rem;
     bottom: 10%;
     width: 4.2rem;
+  }
+
+  .seven-stack {
+    right: 0.35rem;
+    bottom: 10%;
+    width: 3.4rem;
+    height: 4.2rem;
+  }
+
+  .seven-inch {
+    width: 3.1rem;
   }
 
   .deck {

@@ -8,7 +8,7 @@ import { ImportForm } from './import-form'
 import { TrackList } from './ui'
 import { CueSlider } from './cue-slider'
 import { PressingBin } from './pressing-bin'
-import { Turntable } from './turntable'
+import { SevenStack } from './seven-stack'
 import { VuMeters } from './vu-meter'
 
 type Props = {
@@ -184,6 +184,14 @@ export const RadioShell = ({
               </span>
             </span>
           </button>
+        ) : null}
+        {activePlaylistId ? (
+          <SevenStack
+            playlistId={activePlaylistId}
+            tracks={tracks}
+            currentIndex={state.index}
+            onPlay={playAt}
+          />
         ) : null}
         <div className="deck">
           <Turntable
