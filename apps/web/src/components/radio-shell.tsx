@@ -39,6 +39,7 @@ export const RadioShell = ({
   const { current, state, playAt, toggle, next, prev, seek } = player
   const [sleeve, setSleeve] = useState<'album' | 'acquire' | null>(null)
   const sleeveOpen = sleeve !== null
+  const albumSleeveOpen = sleeve === 'album'
   const stageRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -234,7 +235,7 @@ export const RadioShell = ({
       <PressingBin
         playlists={playlists}
         activePlaylistId={activePlaylistId}
-        sleeveOpen={sleeveOpen}
+        sleeveOpen={albumSleeveOpen}
         onSelect={(id) => {
           if (id === activePlaylistId) {
             setSleeve((current) => (current === 'album' ? null : 'album'))
@@ -255,6 +256,7 @@ export const RadioShell = ({
         }
       >
         <Liner
+          key={sleeve ?? 'closed'}
           open={sleeveOpen}
           mode={sleeve === 'acquire' ? 'acquire' : 'album'}
           onClose={() => setSleeve(null)}
