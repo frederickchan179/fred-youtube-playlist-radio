@@ -22,6 +22,9 @@
   --radius: 2px;
   --radius-box: 4px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion: 380ms;
+  --motion-chrome: 240ms;
+  --motion-arm: 700ms;
   --letter-brand: 0.42em;
   --font-display: 'IBM Plex Sans', system-ui, sans-serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
@@ -739,6 +742,7 @@ button {
     inset 0 -1px 0 rgb(0 0 0 / 0.55),
     0 1px 0 #050505,
     0 0 0 1px rgb(0 0 0 / 0.45);
+  transition: opacity var(--motion) var(--ease);
 }
 
 .cue-rail[data-disabled='true'] {
@@ -872,10 +876,20 @@ button {
     inset 0 -1px 0 rgba(0, 0, 0, 0.55),
     0 1px 0 #050505,
     0 2px 3px rgba(0, 0, 0, 0.45);
+  transition:
+                    color var(--motion-chrome) var(--ease),
+                    background var(--motion-chrome) var(--ease),
+                    box-shadow var(--motion-chrome) var(--ease),
+                    transform var(--motion-chrome) var(--ease),
+                    opacity var(--motion-chrome) var(--ease);
 }
 
 .deck-key:hover:not(:disabled) {
   color: #c5c9ce;
+}
+
+.deck-key:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .deck-key:disabled {
@@ -902,7 +916,7 @@ button {
 .tonearm-swing {
   transform-box: view-box;
   transform-origin: 418px 78px;
-  transition: transform 700ms var(--ease);
+  transition: transform var(--motion-arm) var(--ease);
 }
 
 .bin {
@@ -971,7 +985,7 @@ button {
   position: relative;
   flex: 0 0 auto;
   scroll-snap-align: center;
-  transition: transform 280ms var(--ease);
+  transition: transform var(--motion) var(--ease);
 }
 
 .pressing-slot:hover {
@@ -989,7 +1003,7 @@ button {
 
 .bin[data-spines='true'] .pressing:not(.pressing-acquire) {
   width: 1.14rem;
-  transition: width 240ms var(--ease);
+  transition: width var(--motion) var(--ease);
 }
 
 .bin[data-spines='true'] .pressing-vinyl,
@@ -997,6 +1011,7 @@ button {
 .bin[data-spines='true'] .pressing-pin {
   opacity: 0;
   pointer-events: none;
+  transition: opacity var(--motion) var(--ease);
 }
 
 .bin[data-spines='true'] .pressing-spine-title {
@@ -1014,6 +1029,7 @@ button {
   writing-mode: vertical-rl;
   rotate: 180deg;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.55);
+  transition: opacity var(--motion) var(--ease);
 }
 
 .bin[data-spines='true'] .pressing-slot:hover,
@@ -1043,7 +1059,7 @@ button {
 .bin[data-spines='true'] .pressing-slot:hover .pressing-spine-title,
 .bin[data-spines='true'] .pressing-slot:focus-within .pressing-spine-title,
 .bin[data-spines='true'] .pressing-slot:has([data-active='true']) .pressing-spine-title {
-  display: none;
+  opacity: 0;
 }
 
 .bin[data-spines='true'] .pressing-acquire {
@@ -1085,8 +1101,8 @@ button {
     var(--shadow-x) var(--shadow-y) 18px rgb(0 0 0 / 0.18),
     inset 0 0 0 1px rgb(255 220 180 / 0.1);
   transition:
-    transform 280ms var(--ease),
-    box-shadow 280ms var(--ease);
+    transform var(--motion) var(--ease),
+    box-shadow var(--motion) var(--ease);
 }
 
 .pressing-slot:nth-child(3n) .pressing-jacket {
@@ -1174,6 +1190,7 @@ button {
     0 1px 2px rgb(0 0 0 / 0.28),
     inset 0 1px 0 rgb(255 255 255 / 0.45);
   color: #2a1810;
+  transition: background var(--motion) var(--ease);
 }
 
 .pressing-title {
@@ -1195,6 +1212,7 @@ button {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #6a5344;
+  transition: color var(--motion) var(--ease);
 }
 
 .pressing:hover .pressing-jacket,
@@ -1234,13 +1252,6 @@ button {
   opacity: 0.4;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pressing-jacket,
-  .pressing-slot {
-    transition: none;
-  }
-}
-
 .liner {
   position: absolute;
   bottom: calc(100% - 0.08rem);
@@ -1252,8 +1263,8 @@ button {
   opacity: 0;
   translate: -50% 0.75rem;
   transition:
-    opacity 320ms var(--ease),
-    translate 420ms var(--ease);
+    opacity var(--motion) var(--ease),
+    translate var(--motion) var(--ease);
 }
 
 .liner[data-open='true'] {
@@ -1311,16 +1322,79 @@ button {
     inset 0 0 0 1px rgb(255 220 180 / 0.12);
 }
 
+.liner-art-slot {
+  position: relative;
+  height: 3.1rem;
+  width: 3.1rem;
+  flex-shrink: 0;
+}
+
 .liner-art-blank {
   display: block;
   background: #241610;
 }
 
 .liner-cuts {
+  position: relative;
   min-height: 0;
   flex: 1;
   overflow-y: auto;
   padding: 0.35rem 0.85rem 0.9rem;
+}
+
+.liner-row {
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+  background: transparent;
+  transition: background var(--motion) var(--ease);
+}
+
+.liner-row:hover {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+.liner-row[data-active='true'] {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+
+.liner-row .cut-index,
+.liner-row .cut-title {
+  transition: color var(--motion) var(--ease);
+}
+
+.liner-row .cut-index {
+  color: var(--muted);
+}
+
+.liner-row[data-active='true'] .cut-index {
+  color: var(--accent);
+}
+
+.liner-row .cut-title {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.liner-row[data-active='true'] .cut-title {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.liner-remove {
+  margin-top: 0.25rem;
+  margin-left: auto;
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--motion) var(--ease);
+}
+
+.liner-row:hover .liner-remove,
+.liner-remove:focus-visible {
+  opacity: 1;
 }
 
 .hw-btn {
@@ -1338,14 +1412,21 @@ button {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   transition:
-    color 180ms var(--ease),
-    background 180ms var(--ease),
-    border-color 180ms var(--ease);
+    color var(--motion-chrome) var(--ease),
+    background var(--motion-chrome) var(--ease),
+    border-color var(--motion-chrome) var(--ease),
+    box-shadow var(--motion-chrome) var(--ease),
+    transform var(--motion-chrome) var(--ease),
+    opacity var(--motion-chrome) var(--ease);
 }
 
 .hw-btn:hover:not(:disabled) {
   color: var(--ink);
   border-color: color-mix(in oklab, var(--chrome) 55%, transparent);
+}
+
+.hw-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .hw-btn:disabled {
@@ -1386,6 +1467,13 @@ button {
   font-size: 0.88rem;
   outline: none;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
+  transition:
+    border-color var(--motion-chrome) var(--ease),
+    opacity var(--motion) var(--ease);
+}
+
+.field:focus {
+  border-color: color-mix(in oklab, var(--chrome) 58%, transparent);
 }
 
 .field::placeholder {
@@ -1399,5 +1487,27 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .vinyl-spin {
     animation: none;
+  }
+
+  .pressing-jacket,
+  .pressing-slot,
+  .pressing-sticker,
+  .pressing-meta,
+  .liner,
+  .deck-key,
+  .hw-btn,
+  .field,
+  .cue-rail,
+  .liner-row,
+  .liner-remove,
+  .cut-index,
+  .cut-title,
+  .tonearm-swing,
+  .bin[data-spines='true'] .pressing:not(.pressing-acquire),
+  .bin[data-spines='true'] .pressing-vinyl,
+  .bin[data-spines='true'] .pressing-sticker,
+  .bin[data-spines='true'] .pressing-pin,
+  .bin[data-spines='true'] .pressing-spine-title {
+    transition: none;
   }
 }

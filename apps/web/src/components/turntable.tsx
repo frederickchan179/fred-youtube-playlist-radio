@@ -4,6 +4,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { fade } from '../lib/motion'
 
 type Props = {
   cover: string | null
@@ -126,18 +128,34 @@ export const Turntable = ({
                 className="vinyl vinyl-spin h-full w-full"
                 data-paused={String(!playing || cueing)}
               >
-                {cover ? (
-                  <img src={cover} alt="" className="vinyl-press" />
-                ) : null}
+                <AnimatePresence>
+                  {cover ? (
+                    <motion.img
+                      key={cover}
+                      src={cover}
+                      alt=""
+                      className="vinyl-press"
+                      {...fade}
+                    />
+                  ) : null}
+                </AnimatePresence>
                 <div className="vinyl-grooves" />
                 <div className="vinyl-label">
-                  {cover ? (
-                    <img src={cover} alt="" className="vinyl-label-art" />
-                  ) : (
-                    <div className="vinyl-label-blank">
-                      <span>Fred</span>
-                    </div>
-                  )}
+                  <AnimatePresence mode="wait">
+                    {cover ? (
+                      <motion.img
+                        key={cover}
+                        src={cover}
+                        alt=""
+                        className="vinyl-label-art"
+                        {...fade}
+                      />
+                    ) : (
+                      <motion.div key="blank" className="vinyl-label-blank" {...fade}>
+                        <span>Fred</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <div className="vinyl-label-paper" />
                 </div>
               </div>

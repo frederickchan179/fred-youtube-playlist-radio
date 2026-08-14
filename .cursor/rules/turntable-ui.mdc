@@ -35,3 +35,13 @@ One circular key light orbiting the room (~72s ellipse from upper-left). JS on `
 - Cue slider: milled metal fader under the timer (`.cue-rail`), not a generic 1px web range
 - Keys match existing `.deck-key` chrome. New controls must look machined into the plinth
 - Playlist picker is a **record-shop bin** (`.bin` / `.pressing`). Click a jacket to select that playlist and open the **liner**; click the same jacket again to close. **Acquire** is a sealed empty jacket; opening it uses the same liner with a paste-URL form, not a modal. One horizontal row: centered when they fit; **8+ pressings switch to spines** (`data-spines`) — hover/focus pulls a jacket out. Edge-fade + snap-scroll when they overflow.
+
+## Motion
+
+One room, one settle. Do not mix default Motion easings, Tailwind `transition-*`, or unmatched durations.
+
+- Curve: `--ease` / `easeRoom` = `cubic-bezier(0.22, 1, 0.36, 1)`
+- Room objects (jackets, liner, title, cover, spines): `--motion` = **380ms**. Liner presence via CSS `data-open`. Identity swaps via `fade` / `fadeLift` in `lib/motion.ts`. No dim overlay when the sleeve is open — the room stays lit; close with the jacket, Close, or Esc.
+- Chrome (keys, `.hw-btn`, field focus): `--motion-chrome` = **240ms**, plus a 1px press on `:active`
+- Tonearm only: `--motion-arm` = **700ms**. Vinyl spin and VU stay mechanical — do not CSS-ease them
+- `prefers-reduced-motion`: no spin, no transitions

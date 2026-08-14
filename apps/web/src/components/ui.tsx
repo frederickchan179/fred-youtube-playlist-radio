@@ -91,13 +91,8 @@ export const TrackList = ({
         return (
           <div
             key={track.videoId}
-            className="group border-b px-1 py-2.5"
-            style={{
-              borderColor: 'color-mix(in oklab, var(--line) 80%, transparent)',
-              background: active
-                ? 'color-mix(in oklab, var(--accent) 8%, transparent)'
-                : 'transparent',
-            }}
+            className="liner-row px-1 py-2.5"
+            data-active={active ? 'true' : 'false'}
           >
             <button
               type="button"
@@ -105,21 +100,12 @@ export const TrackList = ({
               className="grid w-full grid-cols-[2.25rem_1fr_3.25rem] items-center gap-2 text-left"
             >
               <span
-                className="text-[0.65rem] tabular-nums"
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  color: active ? 'var(--accent)' : 'var(--muted)',
-                }}
+                className="cut-index text-[0.65rem] tabular-nums"
+                style={{ fontFamily: 'var(--font-mono)' }}
               >
                 {active ? '♪' : String(index + 1).padStart(2, '0')}
               </span>
-              <span
-                className="line-clamp-1 text-sm"
-                style={{
-                  color: active ? 'var(--ink)' : 'var(--muted)',
-                  fontWeight: active ? 500 : 400,
-                }}
-              >
+              <span className="cut-title line-clamp-1 text-sm">
                 {track.title}
               </span>
               <span
@@ -133,12 +119,7 @@ export const TrackList = ({
               <button
                 type="button"
                 onClick={() => void onRemoveVideo(track.videoId)}
-                className="mt-1 ml-auto block text-[0.58rem] uppercase opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  letterSpacing: '0.14em',
-                  color: 'var(--accent)',
-                }}
+                className="liner-remove"
                 aria-label={`Remove ${track.title}`}
               >
                 Remove

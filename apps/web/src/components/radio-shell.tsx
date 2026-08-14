@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { MANUAL_PLAYLIST_ID, analogueTheme, type Track } from '@radio/shared'
 import { mediaUrl, formatTime, type PlaylistSummary } from '../lib/api'
+import { fade, fadeLift, roomTransition } from '../lib/motion'
 import type { PlayerApi } from '../hooks/use-player'
 import { ImportFlow } from './import-flow'
 import { ImportForm } from './import-form'
@@ -120,6 +121,7 @@ export const RadioShell = ({
   }, [toggle, next, prev, activePlaylistId])
 
   return (
+    <MotionConfig reducedMotion="user" transition={roomTransition}>
     <div ref={stageRef} className="stage relative min-h-dvh overflow-hidden">
       <audio ref={player.audioRef} preload="metadata" crossOrigin="anonymous" />
 
@@ -178,33 +180,38 @@ export const RadioShell = ({
           >
             <div className="console-readout">
               <div>
-                <p
-                  className="text-[0.58rem] uppercase text-[var(--muted)]"
-                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.32em' }}
-                >
-                  {state.playing ? 'On the platter' : 'Standby'}
-                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={state.playing ? 'playing' : 'standby'}
+                    {...fade}
+                    className="text-[0.58rem] uppercase text-[var(--muted)]"
+                    style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.32em' }}
+                  >
+                    {state.playing ? 'On the platter' : 'Standby'}
+                  </motion.p>
+                </AnimatePresence>
                 <AnimatePresence mode="wait">
                   <motion.h1
                     key={current?.videoId ?? 'empty'}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    {...fadeLift}
                     className="mt-2 line-clamp-3 text-[clamp(1.2rem,2.05vw,2.15rem)] font-medium leading-[1.08] tracking-[-0.03em]"
                   >
                     {current?.title ?? 'Nothing on the platter'}
                   </motion.h1>
                 </AnimatePresence>
-                <p
-                  className="mt-3 text-[0.72rem] text-[var(--muted)]"
-                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}
-                >
-                  {playlistTitle}
-                  {current
-                    ? `  ·  ${formatTime(state.currentTime)} / ${formatTime(state.duration)}`
-                    : '  ·  drag the grooves to cue'}
-                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={`${playlistTitle}-${current ? 'on' : 'off'}`}
+                    {...fade}
+                    className="mt-3 text-[0.72rem] text-[var(--muted)]"
+                    style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}
+                  >
+                    {playlistTitle}
+                    {current
+                      ? `  ·  ${formatTime(state.currentTime)} / ${formatTime(state.duration)}`
+                      : '  ·  drag the grooves to cue'}
+                  </motion.p>
+                </AnimatePresence>
                 <CueSlider
                   currentTime={state.currentTime}
                   duration={state.duration}
@@ -217,20 +224,6 @@ export const RadioShell = ({
           </Turntable>
         </div>
       </div>
-
-      <AnimatePresence>
-        {sleeveOpen ? (
-          <motion.button
-            type="button"
-            aria-label="Close sleeve"
-            className="fixed inset-0 z-30 bg-black/40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSleeve(null)}
-          />
-        ) : null}
-      </AnimatePresence>
 
       <PressingBin
         playlists={playlists}
@@ -256,7 +249,6 @@ export const RadioShell = ({
         }
       >
         <Liner
-          key={sleeve ?? 'closed'}
           open={sleeveOpen}
           mode={sleeve === 'acquire' ? 'acquire' : 'album'}
           onClose={() => setSleeve(null)}
@@ -276,6 +268,7 @@ export const RadioShell = ({
         />
       </PressingBin>
     </div>
+    </MotionConfig>
   )
 }
 
@@ -311,49 +304,83 @@ const Liner = ({
     <aside className="liner" data-open={open ? 'true' : 'false'}>
       <div className="liner-inner">
         <div className="liner-head">
-          {mode === 'album' && cover ? (
-            <img src={cover} alt="" className="liner-art" />
-          ) : (
-            <span className="liner-art liner-art-blank" />
-          )}
+          <div className="liner-art-slot">
+            <AnimatePresence mode="wait">
+              {mode === 'album' && cover ? (
+                <motion.img
+                  key={cover}
+                  src={cover}
+                  alt=""
+                  className="liner-art"
+                  {...fade}
+                />
+              ) : (
+                <motion.span
+                  key="blank"
+                  className="liner-art liner-art-blank"
+                  {...fade}
+                />
+              )}
+            </AnimatePresence>
+          </div>
           <div className="min-w-0 flex-1">
-            <p
-              className="text-[0.58rem] uppercase text-[var(--muted)]"
-              style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.22em' }}
-            >
-              {mode === 'acquire' ? 'Empty sleeve' : 'Inside the sleeve'}
-            </p>
-            <p className="mt-1 line-clamp-1 text-lg font-medium">
-              {mode === 'acquire' ? 'Bring a pressing in' : playlistTitle}
-            </p>
+            <AnimatePresence mode="wait">
+              <motion.div key={mode === 'acquire' ? 'acquire' : playlistTitle} {...fade}>
+                <p
+                  className="text-[0.58rem] uppercase text-[var(--muted)]"
+                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.22em' }}
+                >
+                  {mode === 'acquire' ? 'Empty sleeve' : 'Inside the sleeve'}
+                </p>
+                <p className="mt-1 line-clamp-1 text-lg font-medium">
+                  {mode === 'acquire' ? 'Bring a pressing in' : playlistTitle}
+                </p>
+              </motion.div>
+            </AnimatePresence>
           </div>
           <button type="button" className="hw-btn" onClick={onClose}>
             Close
           </button>
         </div>
-        {mode === 'acquire' ? (
-          <div className="liner-cuts">
-            <p className="mb-4 text-sm text-[var(--muted)]">
-              Paste a YouTube playlist or video URL into the local library.
-            </p>
-            <ImportForm onImported={onImported} />
-          </div>
-        ) : loading ? (
-          <p className="px-4 text-sm text-[var(--muted)]">Loading…</p>
-        ) : error ? (
-          <p className="px-4 text-sm" style={{ color: 'var(--accent)' }}>
-            {error}
-          </p>
-        ) : (
-          <TrackList
-            tracks={tracks}
-            currentId={currentId}
-            onPlayTrack={onPlayTrack}
-            canEditTracks={canEditTracks}
-            onRemoveVideo={onRemoveVideo}
-            className="liner-cuts"
-          />
-        )}
+        <div className="liner-cuts">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={
+                mode === 'acquire'
+                  ? 'acquire'
+                  : loading
+                    ? 'loading'
+                    : error
+                      ? 'error'
+                      : playlistTitle
+              }
+              {...fade}
+            >
+              {mode === 'acquire' ? (
+                <>
+                  <p className="mb-4 text-sm text-[var(--muted)]">
+                    Paste a YouTube playlist or video URL into the local library.
+                  </p>
+                  <ImportForm onImported={onImported} />
+                </>
+              ) : loading ? (
+                <p className="px-4 text-sm text-[var(--muted)]">Loading…</p>
+              ) : error ? (
+                <p className="px-4 text-sm" style={{ color: 'var(--accent)' }}>
+                  {error}
+                </p>
+              ) : (
+                <TrackList
+                  tracks={tracks}
+                  currentId={currentId}
+                  onPlayTrack={onPlayTrack}
+                  canEditTracks={canEditTracks}
+                  onRemoveVideo={onRemoveVideo}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </aside>
   )
