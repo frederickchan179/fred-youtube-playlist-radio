@@ -1,0 +1,19 @@
+---
+description: Git commit format — one clear line, never co-authors
+alwaysApply: true
+---
+
+# Commits
+
+Only commit when the owner asks.
+
+- Message is **one line only**. Clear, specific, written for a human reading `git log`
+- No body, no trailer, no `Co-authored-by`, no `Made-with`, no extra metadata
+- Pass the message via HEREDOC so it cannot pick up a second line
+
+```bash
+git commit -m "$(cat <<'EOF'
+Rebuild the pressing bin as a record-shop album row.
+EOF
+)"
+```

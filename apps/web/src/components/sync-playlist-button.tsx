@@ -8,6 +8,7 @@ type Props = {
   disabled?: boolean
   onSynced: (playlistId: string) => void
   size?: 'sm' | 'md'
+  variant?: 'chip' | 'pin'
 }
 
 export const SyncPlaylistButton = ({
@@ -17,6 +18,7 @@ export const SyncPlaylistButton = ({
   disabled = false,
   onSynced,
   size = 'sm',
+  variant = 'chip',
 }: Props) => {
   const [job, setJob] = useState<ImportJob | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -111,8 +113,8 @@ export const SyncPlaylistButton = ({
     return playlistTitle ? `Sync “${playlistTitle}”` : 'Sync'
   })()
 
-  const dim = size === 'sm' ? 'h-8 w-8' : 'h-11 w-11'
-  const icon = size === 'sm' ? 14 : 16
+  const dim = variant === 'pin' ? 'h-6 w-6' : size === 'sm' ? 'h-8 w-8' : 'h-11 w-11'
+  const icon = variant === 'pin' ? 11 : size === 'sm' ? 14 : 16
 
   if (!canSync) return null
 
@@ -126,13 +128,17 @@ export const SyncPlaylistButton = ({
       disabled={!playlistId || disabled || running || blocked}
       title={label}
       aria-label={label}
-      className={`grid ${dim} shrink-0 place-items-center disabled:opacity-40`}
-      style={{
-        borderRadius: 'var(--radius)',
-        border: '1px solid var(--line)',
-        color: running || error ? 'var(--accent)' : 'var(--muted)',
-        background: 'color-mix(in oklab, var(--panel) 70%, transparent)',
-      }}
+      className={`grid ${dim} shrink-0 place-items-center disabled:opacity-40 ${variant === 'pin' ? 'pressing-sync' : ''}`}
+      style={
+        variant === 'pin'
+          ? undefined
+          : {
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--line)',
+              color: running || error ? 'var(--accent)' : 'var(--muted)',
+              background: 'color-mix(in oklab, var(--panel) 70%, transparent)',
+            }
+      }
     >
       <SyncIcon size={icon} spinning={running} />
     </button>

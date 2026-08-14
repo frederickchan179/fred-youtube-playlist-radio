@@ -1,0 +1,37 @@
+---
+description: Locked turntable, lighting, vinyl, and console hardware for Fred Radio
+globs: apps/web/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# Turntable UI
+
+Photoreal deck. Change light/materials with the existing token model — do not stack extra blend layers.
+
+## Machine
+
+- Walnut frame, screws **centered in the wood rail** (`padding: 1.7rem`, screws `0.85rem` from edges — not in the vertex)
+- Wide plinth: square platter left, console right (title, time, cue slider, VU, keys)
+- Size: keep the machine large enough that titles wrap little. Console column must stay wide (`aspect-ratio` ~1.62, platter capped so readout has room)
+- Tonearm: gimbal / cue / anti-skate **fixed on the deck**. Tube + counterweight + headshell rotate around pivot `418, 78` (`.tonearm-swing`, `transform-origin: 418px 78px`). Real pivoted arm (Technics/Dual) — do not rotate the gimbal
+
+## Vinyl
+
+- Picture disc: thumbnail printed on the playing surface (dark, desaturated), **grooves overlay**, paper label stays in the center
+- Grooves: wide, low-contrast, slight blur. **Never** a second sub-pixel `repeating-radial-gradient` sparkle — that causes moiré / “squiggly” rings
+- Specular is **world-fixed** (siblings of `.vinyl-spin`, not inside it): circular catch at `--ref-x` / `--ref-y`. No radar-rotate, no rectangular “window pane”
+
+## Lighting
+
+One circular key light orbiting the room (~72s ellipse from upper-left). JS on `.stage` sets `--light-x/y`, `--ref-x/y`, `--light-az`, `--shadow-x/y`.
+- Room wash: `circle … vmin`, not `ellipse W% H%` (ellipses look like pancakes on wide screens)
+- Shadow opposite the light, plus a downward contact shadow
+- `prefers-reduced-motion`: skip the orbit; do not spin the disc
+- Do not add competing shafts, `machine::after` sheens, or a strong album-color wash
+
+## Hardware extras
+
+- VU: shared pivot `(50, 58)`, arc r=36, needle 34, sweep ±48°. Keep SVG unstretched
+- Cue slider: milled metal fader under the timer (`.cue-rail`), not a generic 1px web range
+- Keys match existing `.deck-key` chrome. New controls must look machined into the plinth
+- Playlist picker is a **record-shop bin** (`.bin` / `.pressing`). Click a jacket: select it and open the **liner** (`.liner`) from the bin — that is the track list. Click the active jacket again to close. Sticker reads “Open sleeve” / “Inside the sleeve”. Do not put a disconnected Crate button in the header. One horizontal row: centered when they fit, edge-fade + snap-scroll when they overflow. Do not wrap to a grid or untitled thumbs

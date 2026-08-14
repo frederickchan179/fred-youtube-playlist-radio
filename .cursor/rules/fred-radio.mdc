@@ -1,0 +1,29 @@
+---
+description: Fred Radio product lock — local-first radio, locked UX, what not to add
+alwaysApply: true
+---
+
+# Fred Radio
+
+Personal local-first YouTube playlist radio. YouTube is **import only**. Playback is local `.m4a` + thumbs — never an iframe.
+
+## Stack
+
+- pnpm monorepo: `@radio/web` (React 19, Vite, Tailwind 4, Motion), `@radio/server` (Hono `:8787`), `@radio/ingest`, `@radio/shared`
+- Dev: `pnpm dev` or Lando at `https://fred-radio.lndo.site` (`/api` → `:8787`)
+- Do not recreate host `node_modules` while Lando is running
+- Do not touch ingest/server unless the task needs it
+- No commits unless asked. When asked: **one-line message only**, no co-author / trailers. See `git-commits.mdc`
+- UI chat with the owner is Vietnamese; on-device copy stays analogue English (`Standby`, `On the platter`)
+
+## Locked UX
+
+- Dark listening room + **physical** turntable. No cartoon chrome, no mystery knobs, no 3D mouse-tilt
+- Layout: header overlay (brand + import only), centered machine, **pressing bin** at the bottom. Click a jacket to put it on the platter **and open its sleeve** (track list rises from the bin). Click the same jacket again to close. No separate Crate button in the header — the list belongs to the album. Title lives **inside the console**, never over sleeves
+- Transport only: Prev / Play-Pause / Next / Shuffle. Vinyl click = play/pause. Drag grooves **or** the machined cue slider under the timer to seek
+- Do **not** bring back: 33/45 switch, Stop, dummy 45 puck, dummy rotary, extra unlabeled hardware
+- Import modal uses `.panel` + `.field` + `.hw-btn` (`.plinth` was removed — do not revive it as the modal shell)
+
+## Out of scope
+
+Cloud sync / Firebase. Respect copyright and YouTube ToS — personal private use only.

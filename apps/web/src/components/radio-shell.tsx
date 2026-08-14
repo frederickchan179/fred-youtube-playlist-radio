@@ -5,9 +5,10 @@ import { mediaUrl, formatTime, type PlaylistSummary } from '../lib/api'
 import type { PlayerApi } from '../hooks/use-player'
 import { ImportFlow } from './import-flow'
 import { TrackList } from './ui'
+import { CueSlider } from './cue-slider'
+import { PressingBin } from './pressing-bin'
 import { Turntable } from './turntable'
 import { VuMeters } from './vu-meter'
-import { SyncPlaylistButton } from './sync-playlist-button'
 
 type Props = {
   playlists: PlaylistSummary[]
@@ -35,7 +36,7 @@ export const RadioShell = ({
   loading,
 }: Props) => {
   const { current, state, playAt, toggle, next, prev, seek } = player
-  const [crateOpen, setCrateOpen] = useState(false)
+  const [sleeveOpen, setSleeveOpen] = useState(false)
   const stageRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -80,8 +81,12 @@ export const RadioShell = ({
       ? mediaUrl(activePlaylistId, current.videoId, 'thumb')
       : null
 
-  const playlistTitle =
-    playlists.find((p) => p.playlistId === activePlaylistId)?.title ?? 'Library'
+  const playlist = playlists.find((p) => p.playlistId === activePlaylistId)
+  const playlistTitle = playlist?.title ?? 'Library'
+  const linerArt =
+    activePlaylistId && playlist?.coverVideoId
+      ? mediaUrl(activePlaylistId, playlist.coverVideoId, 'thumb')
+      : cover
 
   const canEditTracks = activePlaylistId === MANUAL_PLAYLIST_ID
   const progress =
@@ -102,11 +107,14 @@ export const RadioShell = ({
       }
       if (event.code === 'ArrowRight') next()
       if (event.code === 'ArrowLeft') prev()
-      if (event.code === 'KeyC') setCrateOpen((open) => !open)
+      if (event.code === 'KeyC' && activePlaylistId) {
+        setSleeveOpen((open) => !open)
+      }
+      if (event.code === 'Escape') setSleeveOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [toggle, next, prev])
+  }, [toggle, next, prev, activePlaylistId])
 
   return (
     <div ref={stageRef} className="stage relative min-h-dvh overflow-hidden">
@@ -148,15 +156,6 @@ export const RadioShell = ({
           </p>
         </div>
         <div className="pointer-events-auto flex items-center gap-2">
-          <button
-            type="button"
-            className="hw-btn"
-            data-lit={crateOpen ? 'true' : 'false'}
-            onClick={() => setCrateOpen((open) => !open)}
-            aria-expanded={crateOpen}
-          >
-            Crate
-          </button>
           <ImportFlow onImported={onImported} />
         </div>
       </header>
@@ -206,6 +205,12 @@ export const RadioShell = ({
                     ? `  ·  ${formatTime(state.currentTime)} / ${formatTime(state.duration)}`
                     : '  ·  drag the grooves to cue'}
                 </p>
+                <CueSlider
+                  currentTime={state.currentTime}
+                  duration={state.duration}
+                  onSeek={seek}
+                  disabled={!current}
+                />
               </div>
               <VuMeters audioRef={player.audioRef} playing={state.playing} />
             </div>
@@ -213,103 +218,60 @@ export const RadioShell = ({
         </div>
       </div>
 
-      <Crate
-        open={crateOpen}
-        onClose={() => setCrateOpen(false)}
-        tracks={tracks}
-        currentId={current?.videoId ?? null}
-        playlistTitle={playlistTitle}
-        onPlayTrack={playAt}
-        canEditTracks={canEditTracks}
-        onRemoveVideo={onRemoveVideo}
-        loading={loading}
-        error={error}
-      />
+      <AnimatePresence>
+        {sleeveOpen ? (
+          <motion.button
+            type="button"
+            aria-label="Close sleeve"
+            className="fixed inset-0 z-30 bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSleeveOpen(false)}
+          />
+        ) : null}
+      </AnimatePresence>
 
-      <SleeveRail
+      <PressingBin
         playlists={playlists}
         activePlaylistId={activePlaylistId}
-        onSelect={onSelectPlaylist}
+        sleeveOpen={sleeveOpen}
+        onSelect={(id) => {
+          if (id === activePlaylistId) {
+            setSleeveOpen((open) => !open)
+            return
+          }
+          onSelectPlaylist(id)
+          setSleeveOpen(true)
+        }}
         onSynced={onSynced}
         error={error}
-      />
+      >
+        <Liner
+          open={sleeveOpen}
+          onClose={() => setSleeveOpen(false)}
+          tracks={tracks}
+          currentId={current?.videoId ?? null}
+          playlistTitle={playlistTitle}
+          cover={linerArt}
+          onPlayTrack={playAt}
+          canEditTracks={canEditTracks}
+          onRemoveVideo={onRemoveVideo}
+          loading={loading}
+          error={error}
+        />
+      </PressingBin>
     </div>
   )
 }
 
-const SleeveRail = ({
-  playlists,
-  activePlaylistId,
-  onSelect,
-  onSynced,
-  error,
-}: {
-  playlists: PlaylistSummary[]
-  activePlaylistId: string | null
-  onSelect: (id: string) => void
-  onSynced: (id: string) => void
-  error: string | null
-}) => (
-  <div className="sleeve-rail z-40">
-    {playlists.length === 0 ? (
-      <p
-        className="px-1 py-6 text-[0.68rem] uppercase"
-        style={{
-          fontFamily: 'var(--font-mono)',
-          letterSpacing: '0.18em',
-          color: error ? 'var(--accent)' : 'var(--muted)',
-        }}
-      >
-        {error ?? 'Acquire a pressing to fill the crate'}
-      </p>
-    ) : (
-      playlists.map((playlist, index) => {
-        const active = playlist.playlistId === activePlaylistId
-        const art = playlist.coverVideoId
-          ? mediaUrl(playlist.playlistId, playlist.coverVideoId, 'thumb')
-          : null
-        return (
-          <div key={playlist.playlistId} className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => onSelect(playlist.playlistId)}
-              className="sleeve"
-              data-active={active ? 'true' : 'false'}
-              style={{ rotate: `${(index % 5) * 2 - 4}deg` }}
-              title={playlist.title}
-            >
-              {art ? (
-                <img src={art} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span
-                  className="grid h-full w-full place-items-center px-2 text-center text-[0.55rem] uppercase"
-                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.12em' }}
-                >
-                  {playlist.title}
-                </span>
-              )}
-            </button>
-            <div className="absolute -right-1 -top-1">
-              <SyncPlaylistButton
-                playlistId={playlist.playlistId}
-                playlistTitle={playlist.title}
-                canSync={playlist.canSync}
-                onSynced={onSynced}
-              />
-            </div>
-          </div>
-        )
-      })
-    )}
-  </div>
-)
-
-const Crate = ({
+const Liner = ({
   open,
   onClose,
   tracks,
   currentId,
   playlistTitle,
+  cover,
   onPlayTrack,
   canEditTracks,
   onRemoveVideo,
@@ -321,35 +283,27 @@ const Crate = ({
   tracks: Track[]
   currentId: string | null
   playlistTitle: string
+  cover: string | null
   onPlayTrack: (index: number) => void
   canEditTracks: boolean
   onRemoveVideo: (videoId: string) => Promise<void>
   loading: boolean
   error: string | null
 }) => (
-  <>
-    <AnimatePresence>
-      {open ? (
-        <motion.button
-          type="button"
-          aria-label="Close crate"
-          className="fixed inset-0 z-40 bg-black/45"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        />
-      ) : null}
-    </AnimatePresence>
-    <aside className="crate z-50" data-open={open ? 'true' : 'false'}>
-      <div className="flex h-full flex-col p-5 md:p-6">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
+    <aside className="liner" data-open={open ? 'true' : 'false'}>
+      <div className="liner-inner">
+        <div className="liner-head">
+          {cover ? (
+            <img src={cover} alt="" className="liner-art" />
+          ) : (
+            <span className="liner-art liner-art-blank" />
+          )}
+          <div className="min-w-0 flex-1">
             <p
               className="text-[0.58rem] uppercase text-[var(--muted)]"
               style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.22em' }}
             >
-              Crate
+              Inside the sleeve
             </p>
             <p className="mt-1 line-clamp-1 text-lg font-medium">{playlistTitle}</p>
           </div>
@@ -367,16 +321,12 @@ const Crate = ({
           <TrackList
             tracks={tracks}
             currentId={currentId}
-            onPlayTrack={(index) => {
-              onPlayTrack(index)
-              onClose()
-            }}
+            onPlayTrack={onPlayTrack}
             canEditTracks={canEditTracks}
             onRemoveVideo={onRemoveVideo}
-            className="min-h-0 flex-1 overflow-y-auto pr-1"
+            className="liner-cuts"
           />
         )}
       </div>
     </aside>
-  </>
-)
+  )
