@@ -13,6 +13,8 @@ type Props = {
   children?: ReactNode
 }
 
+const SPINE_AT = 8
+
 export const PressingBin = ({
   playlists,
   activePlaylistId,
@@ -53,7 +55,7 @@ export const PressingBin = ({
   }, [])
 
   return (
-    <div className="bin">
+    <div className="bin" data-spines={playlists.length >= SPINE_AT ? 'true' : 'false'}>
       {children}
       <div className="bin-shelf" aria-hidden />
       <div ref={railRef} className="sleeve-rail">
@@ -107,6 +109,7 @@ export const PressingBin = ({
                     <span className="pressing-blank">{playlist.title}</span>
                   )}
                   <span className="pressing-board" aria-hidden />
+                  <span className="pressing-spine-title">{playlist.title}</span>
                   <span className="pressing-sticker">
                     <span className="pressing-title">{playlist.title}</span>
                     <span className="pressing-meta">{cuts}</span>

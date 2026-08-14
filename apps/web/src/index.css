@@ -1015,6 +1015,76 @@ button {
   transform: none;
 }
 
+.pressing-spine-title {
+  display: none;
+}
+
+.bin[data-spines='true'] .sleeve-rail {
+  gap: 0.22rem;
+}
+
+.bin[data-spines='true'] .pressing:not(.pressing-acquire) {
+  width: 1.14rem;
+  transition: width 240ms var(--ease);
+}
+
+.bin[data-spines='true'] .pressing-ghost {
+  width: 1.14rem;
+}
+
+.bin[data-spines='true'] .pressing-vinyl,
+.bin[data-spines='true'] .pressing-sticker,
+.bin[data-spines='true'] .pressing-pin {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bin[data-spines='true'] .pressing-spine-title {
+  display: block;
+  position: absolute;
+  inset: 0.45rem 0.12rem 0.55rem;
+  overflow: hidden;
+  z-index: 2;
+  color: #f3ece4;
+  font-size: 0.52rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  rotate: 180deg;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.55);
+}
+
+.bin[data-spines='true'] .pressing-slot:hover,
+.bin[data-spines='true'] .pressing-slot:focus-within {
+  z-index: 6;
+}
+
+.bin[data-spines='true'] .pressing-slot:hover .pressing:not(.pressing-acquire),
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing:not(.pressing-acquire) {
+  width: 7.4rem;
+}
+
+.bin[data-spines='true'] .pressing-slot:hover .pressing-vinyl,
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing-vinyl,
+.bin[data-spines='true'] .pressing-slot:hover .pressing-sticker,
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing-sticker,
+.bin[data-spines='true'] .pressing-slot:hover .pressing-pin,
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing-pin {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bin[data-spines='true'] .pressing-slot:hover .pressing-spine-title,
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing-spine-title {
+  display: none;
+}
+
+.bin[data-spines='true'] .pressing-acquire {
+  width: 7.4rem;
+}
+
 .pressing-ghost {
   width: 7.4rem;
   aspect-ratio: 1;
