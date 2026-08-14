@@ -49,6 +49,30 @@ const bandLevel = (data: Uint8Array, from: number, to: number): number => {
   return Math.min(1, sum / n / 220)
 }
 
+const CX = 50
+const CY = 58
+const ARC_R = 36
+const NEEDLE_R = 34
+const SWEEP = 48
+const RED_FROM = 18
+
+const polar = (deg: number, radius = ARC_R) => {
+  const rad = (deg * Math.PI) / 180
+  return {
+    x: CX + radius * Math.sin(rad),
+    y: CY - radius * Math.cos(rad),
+  }
+}
+
+const arcPath = (fromDeg: number, toDeg: number) => {
+  const from = polar(fromDeg)
+  const to = polar(toDeg)
+  return `M ${from.x.toFixed(2)} ${from.y.toFixed(2)} A ${ARC_R} ${ARC_R} 0 0 1 ${to.x.toFixed(2)} ${to.y.toFixed(2)}`
+}
+
+const SCALE_ARC = arcPath(-SWEEP, SWEEP)
+const RED_ARC = arcPath(RED_FROM, SWEEP)
+
 type Props = {
   audioRef: RefObject<HTMLAudioElement | null>
   playing: boolean
@@ -82,11 +106,11 @@ export const VuMeters = ({ audioRef, playing }: Props) => {
       leftLevel.current += (targetL - leftLevel.current) * 0.18
       rightLevel.current += (targetR - rightLevel.current) * 0.18
 
-      const toNeedle = (level: number) => -48 + level * 96
+      const toNeedle = (level: number) => -SWEEP + level * SWEEP * 2
       const left = leftRef.current
       const right = rightRef.current
-      if (left) left.setAttribute('transform', `rotate(${toNeedle(leftLevel.current)} 50 58)`)
-      if (right) right.setAttribute('transform', `rotate(${toNeedle(rightLevel.current)} 50 58)`)
+      if (left) left.setAttribute('transform', `rotate(${toNeedle(leftLevel.current)} ${CX} ${CY})`)
+      if (right) right.setAttribute('transform', `rotate(${toNeedle(rightLevel.current)} ${CX} ${CY})`)
 
       raf = requestAnimationFrame(() => {
         void tick()
@@ -129,31 +153,27 @@ const MeterFace = ({
     >
       {label}
     </p>
-    <svg viewBox="0 0 100 68" className="h-14 w-full" aria-hidden>
-      <path
-        d="M12 58 A 38 38 0 0 1 88 58"
-        fill="none"
-        stroke="#6a6662"
-        strokeWidth="1"
-      />
-      <path
-        d="M70 22 A 38 38 0 0 1 88 58"
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="1.4"
-      />
+    <svg
+      viewBox="0 0 100 68"
+      preserveAspectRatio="xMidYMid meet"
+      className="w-full"
+      style={{ aspectRatio: '100 / 68' }}
+      aria-hidden
+    >
+      <path d={SCALE_ARC} fill="none" stroke="#6a6662" strokeWidth="1.1" />
+      <path d={RED_ARC} fill="none" stroke="var(--accent)" strokeWidth="1.4" />
       <line
         ref={needleRef}
-        x1="50"
-        y1="58"
-        x2="50"
-        y2="18"
+        x1={CX}
+        y1={CY}
+        x2={CX}
+        y2={CY - NEEDLE_R}
         stroke="#e8c48a"
         strokeWidth="1.2"
         strokeLinecap="round"
-        transform="rotate(-48 50 58)"
+        transform={`rotate(${-SWEEP} ${CX} ${CY})`}
       />
-      <circle cx="50" cy="58" r="3" fill="#cfd3d5" />
+      <circle cx={CX} cy={CY} r="2.4" fill="#cfd3d5" />
     </svg>
   </div>
 )

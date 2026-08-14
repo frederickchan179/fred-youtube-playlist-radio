@@ -109,23 +109,13 @@ export const ImportForm = ({ onImported, busy = false }: Props) => {
             disabled={running}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="youtube.com/playlist?list=… or a single video"
-            className="min-w-0 flex-1 px-3 py-3 text-sm outline-none placeholder:text-[var(--muted)] disabled:opacity-50"
-            style={{
-              borderRadius: 'var(--radius-box)',
-              border: '1px solid var(--line)',
-              background: 'color-mix(in oklab, var(--bg-0) 55%, transparent)',
-              color: 'var(--ink)',
-            }}
+            className="field"
           />
           <button
             type="submit"
             disabled={running || !url.trim()}
-            className="shrink-0 px-5 py-3 text-sm font-medium disabled:opacity-40"
-            style={{
-              borderRadius: 'var(--radius)',
-              background: 'var(--ink)',
-              color: 'var(--bg-0)',
-            }}
+            className="hw-btn shrink-0"
+            data-lit="true"
           >
             {running ? 'Saving…' : 'Acquire'}
           </button>

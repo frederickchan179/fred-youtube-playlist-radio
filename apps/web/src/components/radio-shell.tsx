@@ -1,9 +1,8 @@
-import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { MANUAL_PLAYLIST_ID, analogueTheme, type Track } from '@radio/shared'
 import { mediaUrl, formatTime, type PlaylistSummary } from '../lib/api'
 import type { PlayerApi } from '../hooks/use-player'
-import { Transport } from './transport'
 import { ImportFlow } from './import-flow'
 import { TrackList } from './ui'
 import { Turntable } from './turntable'
@@ -37,8 +36,44 @@ export const RadioShell = ({
 }: Props) => {
   const { current, state, playAt, toggle, next, prev, seek } = player
   const [crateOpen, setCrateOpen] = useState(false)
-  const [tilt, setTilt] = useState({ x: 8, y: -6 })
-  const [shineAngle, setShineAngle] = useState(210)
+  const stageRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    let raf = 0
+    const started = performance.now()
+    const period = 72000
+    const phase = (5 * Math.PI) / 4
+
+    const tick = (now: number) => {
+      const t = ((now - started) / period) * Math.PI * 2 + phase
+      const cx = Math.cos(t)
+      const cy = Math.sin(t)
+      const az = (t * 180) / Math.PI - 90
+      const lx = 50 + cx * 38
+      const ly = 40 + cy * 28
+      const rx = 50 + cx * 30
+      const ry = 50 + cy * 28
+      const sx = -cx * 22
+      const sy = 16 - cy * 14
+      const gain = 0.86 - cy * 0.1
+      stage.style.setProperty('--light-az', `${az.toFixed(2)}deg`)
+      stage.style.setProperty('--light-x', `${lx.toFixed(2)}%`)
+      stage.style.setProperty('--light-y', `${ly.toFixed(2)}%`)
+      stage.style.setProperty('--ref-x', `${rx.toFixed(2)}%`)
+      stage.style.setProperty('--ref-y', `${ry.toFixed(2)}%`)
+      stage.style.setProperty('--light-gain', gain.toFixed(3))
+      stage.style.setProperty('--shadow-x', `${sx.toFixed(1)}px`)
+      stage.style.setProperty('--shadow-y', `${sy.toFixed(1)}px`)
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   const cover =
     current && activePlaylistId
@@ -73,22 +108,8 @@ export const RadioShell = ({
     return () => window.removeEventListener('keydown', onKey)
   }, [toggle, next, prev])
 
-  const onStageMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const nx = (event.clientX - rect.left) / rect.width - 0.5
-    const ny = (event.clientY - rect.top) / rect.height - 0.5
-    setTilt({
-      x: 8 + ny * -7,
-      y: -6 + nx * 10,
-    })
-    setShineAngle(200 + nx * 70)
-  }
-
   return (
-    <div
-      className="stage relative min-h-dvh overflow-hidden"
-      onPointerMove={onStageMove}
-    >
+    <div ref={stageRef} className="stage relative min-h-dvh overflow-hidden">
       <audio ref={player.audioRef} preload="metadata" crossOrigin="anonymous" />
 
       {cover ? (
@@ -100,7 +121,7 @@ export const RadioShell = ({
             backgroundPosition: 'center',
             filter: 'blur(64px) saturate(0.75) brightness(0.22)',
             transform: 'scale(1.2)',
-            opacity: 0.7,
+            opacity: 0.08,
           }}
         />
       ) : null}
@@ -140,60 +161,55 @@ export const RadioShell = ({
         </div>
       </header>
 
-      <div
-        className="deck"
-        style={{
-          transform: `translateY(-50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-        }}
-      >
-        <Turntable
-          cover={cover}
-          playing={state.playing}
-          progress={progress}
-          duration={state.duration}
-          onToggle={toggle}
-          onSeek={seek}
-          disabled={!current}
-          shineAngle={shineAngle}
-        />
-      </div>
-
-      <div className="pointer-events-none absolute inset-0 z-30">
-        <div className="absolute bottom-[22%] left-[min(52%,calc(100%-22rem))] right-6 max-w-xl md:right-10 lg:left-[54%]">
-          <p
-            className="text-[0.58rem] uppercase text-[var(--muted)]"
-            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.32em' }}
+      <div className="deck-slot">
+        <div className="deck">
+          <Turntable
+            cover={cover}
+            playing={state.playing}
+            progress={progress}
+            duration={state.duration}
+            shuffle={state.shuffle}
+            hasTrack={Boolean(current)}
+            onToggle={toggle}
+            onSeek={seek}
+            onPrev={prev}
+            onNext={next}
+            onShuffle={player.toggleShuffle}
+            disabled={!current}
           >
-            {state.playing ? 'On the platter' : 'Standby'}
-          </p>
-          <AnimatePresence mode="wait">
-            <motion.h1
-              key={current?.videoId ?? 'empty'}
-              initial={{ opacity: 0, y: 28, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-3 line-clamp-3 text-[clamp(2.4rem,6.2vw,6.4rem)] font-medium leading-[0.88] tracking-[-0.045em]"
-            >
-              {current?.title ?? 'Nothing on the platter'}
-            </motion.h1>
-          </AnimatePresence>
-          <p
-            className="mt-4 text-[0.72rem] text-[var(--muted)]"
-            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}
-          >
-            {playlistTitle}
-            {current
-              ? `  ·  ${formatTime(state.currentTime)} / ${formatTime(state.duration)}`
-              : '  ·  drag the grooves to cue'}
-          </p>
-          <div className="pointer-events-auto mt-6">
-            <Transport player={player} />
-          </div>
-        </div>
-
-        <div className="pointer-events-auto absolute right-6 top-24 w-40 md:right-10">
-          <VuMeters audioRef={player.audioRef} playing={state.playing} />
+            <div className="console-readout">
+              <div>
+                <p
+                  className="text-[0.58rem] uppercase text-[var(--muted)]"
+                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.32em' }}
+                >
+                  {state.playing ? 'On the platter' : 'Standby'}
+                </p>
+                <AnimatePresence mode="wait">
+                  <motion.h1
+                    key={current?.videoId ?? 'empty'}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="mt-2 line-clamp-3 text-[clamp(1.2rem,2.05vw,2.15rem)] font-medium leading-[1.08] tracking-[-0.03em]"
+                  >
+                    {current?.title ?? 'Nothing on the platter'}
+                  </motion.h1>
+                </AnimatePresence>
+                <p
+                  className="mt-3 text-[0.72rem] text-[var(--muted)]"
+                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}
+                >
+                  {playlistTitle}
+                  {current
+                    ? `  ·  ${formatTime(state.currentTime)} / ${formatTime(state.duration)}`
+                    : '  ·  drag the grooves to cue'}
+                </p>
+              </div>
+              <VuMeters audioRef={player.audioRef} playing={state.playing} />
+            </div>
+          </Turntable>
         </div>
       </div>
 
