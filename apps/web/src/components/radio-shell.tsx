@@ -225,6 +225,16 @@ export const RadioShell = ({
         </div>
       </div>
 
+      <button
+        type="button"
+        aria-label="Close sleeve"
+        aria-hidden={!sleeveOpen}
+        tabIndex={sleeveOpen ? 0 : -1}
+        className="sleeve-dismiss"
+        data-open={sleeveOpen ? 'true' : 'false'}
+        onClick={() => setSleeve(null)}
+      />
+
       <PressingBin
         playlists={playlists}
         activePlaylistId={activePlaylistId}
