@@ -8,7 +8,7 @@ import { ImportForm } from './import-form'
 import { TrackList } from './ui'
 import { CueSlider } from './cue-slider'
 import { PressingBin } from './pressing-bin'
-import { SevenStack } from './seven-stack'
+import { Turntable } from './turntable'
 import { VuMeters } from './vu-meter'
 
 type Props = {
@@ -160,39 +160,6 @@ export const RadioShell = ({
       </header>
 
       <div className="deck-slot">
-        {playlist ? (
-          <button
-            type="button"
-            className="desk-pressing"
-            onClick={() => setSleeve((current) => (current === 'album' ? null : 'album'))}
-            aria-expanded={sleeve === 'album'}
-            aria-label={`${playlistTitle}, ${sleeve === 'album' ? 'close sleeve' : 'open sleeve'}`}
-          >
-            <span className="pressing-vinyl" aria-hidden />
-            <span className="pressing-jacket">
-              {linerArt ? (
-                <img src={linerArt} alt="" className="pressing-art" />
-              ) : (
-                <span className="pressing-blank">{playlistTitle}</span>
-              )}
-              <span className="pressing-board" aria-hidden />
-              <span className="pressing-sticker">
-                <span className="pressing-title">{playlistTitle}</span>
-                <span className="pressing-meta">
-                  {sleeve === 'album' ? 'Inside the sleeve' : 'On the desk'}
-                </span>
-              </span>
-            </span>
-          </button>
-        ) : null}
-        {activePlaylistId ? (
-          <SevenStack
-            playlistId={activePlaylistId}
-            tracks={tracks}
-            currentIndex={state.index}
-            onPlay={playAt}
-          />
-        ) : null}
         <div className="deck">
           <Turntable
             cover={cover}
@@ -269,6 +236,10 @@ export const RadioShell = ({
         activePlaylistId={activePlaylistId}
         sleeveOpen={sleeveOpen}
         onSelect={(id) => {
+          if (id === activePlaylistId) {
+            setSleeve((current) => (current === 'album' ? null : 'album'))
+            return
+          }
           onSelectPlaylist(id)
           setSleeve('album')
         }}
