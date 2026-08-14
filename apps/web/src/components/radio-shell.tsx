@@ -4,6 +4,7 @@ import { MANUAL_PLAYLIST_ID, analogueTheme, type Track } from '@radio/shared'
 import { mediaUrl, formatTime, type PlaylistSummary } from '../lib/api'
 import type { PlayerApi } from '../hooks/use-player'
 import { ImportFlow } from './import-flow'
+import { ImportForm } from './import-form'
 import { TrackList } from './ui'
 import { CueSlider } from './cue-slider'
 import { PressingBin } from './pressing-bin'
@@ -36,7 +37,8 @@ export const RadioShell = ({
   loading,
 }: Props) => {
   const { current, state, playAt, toggle, next, prev, seek } = player
-  const [sleeveOpen, setSleeveOpen] = useState(false)
+  const [sleeve, setSleeve] = useState<'album' | 'acquire' | null>(null)
+  const sleeveOpen = sleeve !== null
   const stageRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -108,9 +110,9 @@ export const RadioShell = ({
       if (event.code === 'ArrowRight') next()
       if (event.code === 'ArrowLeft') prev()
       if (event.code === 'KeyC' && activePlaylistId) {
-        setSleeveOpen((open) => !open)
+        setSleeve((current) => (current === 'album' ? null : 'album'))
       }
-      if (event.code === 'Escape') setSleeveOpen(false)
+      if (event.code === 'Escape') setSleeve(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -162,9 +164,9 @@ export const RadioShell = ({
           <button
             type="button"
             className="desk-pressing"
-            onClick={() => setSleeveOpen((open) => !open)}
-            aria-expanded={sleeveOpen}
-            aria-label={`${playlistTitle}, ${sleeveOpen ? 'close sleeve' : 'open sleeve'}`}
+            onClick={() => setSleeve((current) => (current === 'album' ? null : 'album'))}
+            aria-expanded={sleeve === 'album'}
+            aria-label={`${playlistTitle}, ${sleeve === 'album' ? 'close sleeve' : 'open sleeve'}`}
           >
             <span className="pressing-vinyl" aria-hidden />
             <span className="pressing-jacket">
@@ -177,7 +179,7 @@ export const RadioShell = ({
               <span className="pressing-sticker">
                 <span className="pressing-title">{playlistTitle}</span>
                 <span className="pressing-meta">
-                  {sleeveOpen ? 'Inside the sleeve' : 'On the desk'}
+                  {sleeve === 'album' ? 'Inside the sleeve' : 'On the desk'}
                 </span>
               </span>
             </span>
@@ -249,7 +251,7 @@ export const RadioShell = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSleeveOpen(false)}
+            onClick={() => setSleeve(null)}
           />
         ) : null}
       </AnimatePresence>
@@ -260,22 +262,23 @@ export const RadioShell = ({
         sleeveOpen={sleeveOpen}
         onSelect={(id) => {
           onSelectPlaylist(id)
-          setSleeveOpen(true)
+          setSleeve('album')
         }}
         onSynced={onSynced}
         error={error}
         acquire={
           <ImportFlow
-            onImported={(id) => {
-              onImported(id)
-              setSleeveOpen(true)
-            }}
+            open={sleeve === 'acquire'}
+            onOpen={() =>
+              setSleeve((current) => (current === 'acquire' ? null : 'acquire'))
+            }
           />
         }
       >
         <Liner
           open={sleeveOpen}
-          onClose={() => setSleeveOpen(false)}
+          mode={sleeve === 'acquire' ? 'acquire' : 'album'}
+          onClose={() => setSleeve(null)}
           tracks={tracks}
           currentId={current?.videoId ?? null}
           playlistTitle={playlistTitle}
@@ -283,6 +286,10 @@ export const RadioShell = ({
           onPlayTrack={playAt}
           canEditTracks={canEditTracks}
           onRemoveVideo={onRemoveVideo}
+          onImported={(id) => {
+            onImported(id)
+            setSleeve('album')
+          }}
           loading={loading}
           error={error}
         />
@@ -293,6 +300,7 @@ export const RadioShell = ({
 
 const Liner = ({
   open,
+  mode,
   onClose,
   tracks,
   currentId,
@@ -301,10 +309,12 @@ const Liner = ({
   onPlayTrack,
   canEditTracks,
   onRemoveVideo,
+  onImported,
   loading,
   error,
 }: {
   open: boolean
+  mode: 'album' | 'acquire'
   onClose: () => void
   tracks: Track[]
   currentId: string | null
@@ -313,13 +323,14 @@ const Liner = ({
   onPlayTrack: (index: number) => void
   canEditTracks: boolean
   onRemoveVideo: (videoId: string) => Promise<void>
+  onImported: (playlistId: string) => void
   loading: boolean
   error: string | null
 }) => (
     <aside className="liner" data-open={open ? 'true' : 'false'}>
       <div className="liner-inner">
         <div className="liner-head">
-          {cover ? (
+          {mode === 'album' && cover ? (
             <img src={cover} alt="" className="liner-art" />
           ) : (
             <span className="liner-art liner-art-blank" />
@@ -329,18 +340,27 @@ const Liner = ({
               className="text-[0.58rem] uppercase text-[var(--muted)]"
               style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.22em' }}
             >
-              Inside the sleeve
+              {mode === 'acquire' ? 'Empty sleeve' : 'Inside the sleeve'}
             </p>
-            <p className="mt-1 line-clamp-1 text-lg font-medium">{playlistTitle}</p>
+            <p className="mt-1 line-clamp-1 text-lg font-medium">
+              {mode === 'acquire' ? 'Bring a pressing in' : playlistTitle}
+            </p>
           </div>
           <button type="button" className="hw-btn" onClick={onClose}>
             Close
           </button>
         </div>
-        {loading ? (
-          <p className="text-sm text-[var(--muted)]">Loading…</p>
+        {mode === 'acquire' ? (
+          <div className="liner-cuts">
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              Paste a YouTube playlist or video URL into the local library.
+            </p>
+            <ImportForm onImported={onImported} />
+          </div>
+        ) : loading ? (
+          <p className="px-4 text-sm text-[var(--muted)]">Loading…</p>
         ) : error ? (
-          <p className="text-sm" style={{ color: 'var(--accent)' }}>
+          <p className="px-4 text-sm" style={{ color: 'var(--accent)' }}>
             {error}
           </p>
         ) : (
