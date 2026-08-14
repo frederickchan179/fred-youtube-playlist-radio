@@ -16,7 +16,6 @@ type Props = {
 export const PressingBin = ({
   playlists,
   activePlaylistId,
-  sleeveOpen = false,
   onSelect,
   onSynced,
   error,
@@ -79,11 +78,18 @@ export const PressingBin = ({
             playlist.trackCount === 1
               ? '1 cut'
               : `${playlist.trackCount} cuts`
-          const cue = active
-            ? sleeveOpen
-              ? 'Inside the sleeve'
-              : 'Open sleeve'
-            : cuts
+
+          if (active) {
+            return (
+              <div
+                key={playlist.playlistId}
+                className="pressing-slot"
+                aria-hidden
+              >
+                <div className="pressing-ghost" title={`${playlist.title} is on the desk`} />
+              </div>
+            )
+          }
 
           return (
             <div key={playlist.playlistId} className="pressing-slot">
@@ -91,10 +97,7 @@ export const PressingBin = ({
                 type="button"
                 onClick={() => onSelect(playlist.playlistId)}
                 className="pressing"
-                data-active={active ? 'true' : 'false'}
-                aria-current={active ? 'true' : undefined}
-                aria-expanded={active ? sleeveOpen : undefined}
-                aria-label={`${playlist.title}, ${cue}`}
+                aria-label={`${playlist.title}, ${cuts}`}
               >
                 <span className="pressing-vinyl" aria-hidden />
                 <span className="pressing-jacket">
@@ -106,7 +109,7 @@ export const PressingBin = ({
                   <span className="pressing-board" aria-hidden />
                   <span className="pressing-sticker">
                     <span className="pressing-title">{playlist.title}</span>
-                    <span className="pressing-meta">{cue}</span>
+                    <span className="pressing-meta">{cuts}</span>
                   </span>
                 </span>
               </button>

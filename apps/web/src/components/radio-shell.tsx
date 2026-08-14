@@ -158,6 +158,31 @@ export const RadioShell = ({
       </header>
 
       <div className="deck-slot">
+        {playlist ? (
+          <button
+            type="button"
+            className="desk-pressing"
+            onClick={() => setSleeveOpen((open) => !open)}
+            aria-expanded={sleeveOpen}
+            aria-label={`${playlistTitle}, ${sleeveOpen ? 'close sleeve' : 'open sleeve'}`}
+          >
+            <span className="pressing-vinyl" aria-hidden />
+            <span className="pressing-jacket">
+              {linerArt ? (
+                <img src={linerArt} alt="" className="pressing-art" />
+              ) : (
+                <span className="pressing-blank">{playlistTitle}</span>
+              )}
+              <span className="pressing-board" aria-hidden />
+              <span className="pressing-sticker">
+                <span className="pressing-title">{playlistTitle}</span>
+                <span className="pressing-meta">
+                  {sleeveOpen ? 'Inside the sleeve' : 'On the desk'}
+                </span>
+              </span>
+            </span>
+          </button>
+        ) : null}
         <div className="deck">
           <Turntable
             cover={cover}
@@ -234,10 +259,6 @@ export const RadioShell = ({
         activePlaylistId={activePlaylistId}
         sleeveOpen={sleeveOpen}
         onSelect={(id) => {
-          if (id === activePlaylistId) {
-            setSleeveOpen((open) => !open)
-            return
-          }
           onSelectPlaylist(id)
           setSleeveOpen(true)
         }}
