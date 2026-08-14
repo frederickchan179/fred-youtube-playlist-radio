@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Track } from '@radio/shared'
-import { ThemeProvider } from './hooks/use-theme'
 import { usePlayer } from './hooks/use-player'
 import {
   fetchPlaylist,
@@ -11,11 +10,7 @@ import {
 import { RadioShell } from './components/radio-shell'
 
 export const App = () => {
-  return (
-    <ThemeProvider>
-      <RadioApp />
-    </ThemeProvider>
-  )
+  return <RadioApp />
 }
 
 const RadioApp = () => {

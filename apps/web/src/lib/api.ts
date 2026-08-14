@@ -1,5 +1,4 @@
-import type { PlaylistManifest, SyncSummary, ThemeId } from '@radio/shared'
-import { isThemeId } from '@radio/shared'
+import type { PlaylistManifest, SyncSummary } from '@radio/shared'
 
 export type PlaylistSummary = {
   playlistId: string
@@ -105,17 +104,6 @@ export const mediaUrl = (
   kind: 'audio' | 'thumb',
 ): string =>
   `/api/playlists/${playlistId}/media/${videoId}?kind=${kind}`
-
-export const THEME_STORAGE_KEY = 'fred-radio-theme'
-
-export const readStoredTheme = (): ThemeId | null => {
-  const value = localStorage.getItem(THEME_STORAGE_KEY)
-  return value && isThemeId(value) ? value : null
-}
-
-export const storeTheme = (id: ThemeId): void => {
-  localStorage.setItem(THEME_STORAGE_KEY, id)
-}
 
 export const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'

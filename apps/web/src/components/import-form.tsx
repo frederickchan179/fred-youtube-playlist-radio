@@ -108,7 +108,7 @@ export const ImportForm = ({ onImported, busy = false }: Props) => {
             value={url}
             disabled={running}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="youtube.com/playlist?list=…"
+            placeholder="youtube.com/playlist?list=… or a single video"
             className="min-w-0 flex-1 px-3 py-3 text-sm outline-none placeholder:text-[var(--muted)] disabled:opacity-50"
             style={{
               borderRadius: 'var(--radius-box)',
@@ -127,7 +127,7 @@ export const ImportForm = ({ onImported, busy = false }: Props) => {
               color: 'var(--bg-0)',
             }}
           >
-            {running ? 'Saving…' : 'Save'}
+            {running ? 'Saving…' : 'Acquire'}
           </button>
         </div>
       </label>
