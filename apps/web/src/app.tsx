@@ -10,6 +10,7 @@ import {
   type QueuedTrack,
 } from './lib/api'
 import { RadioShell } from './components/radio-shell'
+import { readPlatterMemory } from './lib/platter-memory'
 
 export const App = () => {
   const player = usePlayer()
@@ -33,6 +34,14 @@ export const App = () => {
           if (selectedId === ON_AIR_PLAYLIST_ID) return selectedId
           if (selectedId && list.some((playlist) => playlist.playlistId === selectedId)) {
             return selectedId
+          }
+          const remembered = readPlatterMemory()
+          if (
+            remembered?.playlistId === ON_AIR_PLAYLIST_ID ||
+            (remembered &&
+              list.some((playlist) => playlist.playlistId === remembered.playlistId))
+          ) {
+            return remembered.playlistId
           }
           return list[0]?.playlistId ?? null
         })
@@ -71,10 +80,22 @@ export const App = () => {
               .filter((track) => track.status === 'ready')
               .map((track) => ({ ...track, sourcePlaylistId: activePlaylistId }))
         if (cancelled) return
+        const remembered = readPlatterMemory()
+        const restoreIndex =
+          remembered && remembered.playlistId === activePlaylistId
+            ? readyTracks.findIndex((track) => track.videoId === remembered.videoId)
+            : -1
+        const shouldRestore = Boolean(remembered) && restoreIndex >= 0
         setTracks(readyTracks)
-        player.loadQueue(activePlaylistId, readyTracks, 0, {
+        player.loadQueue(activePlaylistId, readyTracks, shouldRestore ? restoreIndex : 0, {
           autoplay: false,
-          shuffle: switchedPlaylist && isOnAir ? true : undefined,
+          shuffle:
+            shouldRestore && remembered
+              ? remembered.shuffle
+              : switchedPlaylist && isOnAir
+                ? true
+                : undefined,
+          startTime: shouldRestore && remembered ? remembered.currentTime : 0,
         })
         setError(null)
       } catch (err) {

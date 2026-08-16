@@ -7,6 +7,7 @@ import {
 } from 'react'
 import { mediaUrl, type QueuedTrack } from '../lib/api'
 import { playFoley, unlockDeckFoley } from '../lib/deck-foley'
+import { writePlatterMemory } from '../lib/platter-memory'
 
 type PlayerState = {
   playlistId: string | null
@@ -34,6 +35,8 @@ export const usePlayer = () => {
   const stateRef = useRef(state)
   stateRef.current = state
 
+  const pendingSeekRef = useRef<number | null>(null)
+
   const currentTrack = state.queue[state.index] ?? null
 
   const loadQueue = useCallback(
@@ -41,14 +44,18 @@ export const usePlayer = () => {
       playlistId: string,
       tracks: QueuedTrack[],
       startIndex = 0,
-      options?: { autoplay?: boolean; shuffle?: boolean },
+      options?: { autoplay?: boolean; shuffle?: boolean; startTime?: number },
     ) => {
+      pendingSeekRef.current =
+        typeof options?.startTime === 'number' && options.startTime > 0
+          ? options.startTime
+          : null
       setState((previous) => ({
         ...previous,
         playlistId,
         queue: tracks,
         index: Math.min(Math.max(0, startIndex), Math.max(0, tracks.length - 1)),
-        currentTime: 0,
+        currentTime: options?.startTime ?? 0,
         duration: 0,
         playing: options?.autoplay ?? false,
         shuffle: options?.shuffle ?? previous.shuffle,
@@ -155,6 +162,15 @@ export const usePlayer = () => {
       audio.load()
     }
 
+    const applyPendingSeek = () => {
+      const pending = pendingSeekRef.current
+      if (pending == null || audio.readyState < 1) return
+      const duration = Number.isFinite(audio.duration) ? audio.duration : pending + 1
+      audio.currentTime = pending >= duration - 1 ? 0 : pending
+      pendingSeekRef.current = null
+    }
+    applyPendingSeek()
+
     if (state.playing) {
       const playPromise = audio.play()
       playPromise?.catch(() => {
@@ -177,11 +193,19 @@ export const usePlayer = () => {
           ? audio.duration
           : previous.duration,
       }))
-    const onLoadedMetadata = () =>
+    const onLoadedMetadata = () => {
+      const pending = pendingSeekRef.current
+      if (pending != null) {
+        const duration = Number.isFinite(audio.duration) ? audio.duration : pending + 1
+        audio.currentTime = pending >= duration - 1 ? 0 : pending
+        pendingSeekRef.current = null
+      }
       setState((previous) => ({
         ...previous,
+        currentTime: audio.currentTime,
         duration: Number.isFinite(audio.duration) ? audio.duration : 0,
       }))
+    }
     const onEnded = () => next()
     const onPlay = () =>
       setState((previous) => ({ ...previous, playing: true }))
@@ -202,6 +226,20 @@ export const usePlayer = () => {
       audio.removeEventListener('pause', onPause)
     }
   }, [next])
+
+  useEffect(() => {
+    if (!state.playlistId || !currentTrack) return
+    const memory = {
+      playlistId: state.playlistId,
+      videoId: currentTrack.videoId,
+      currentTime: state.currentTime,
+      shuffle: state.shuffle,
+    }
+    const timer = window.setTimeout(() => {
+      writePlatterMemory(memory)
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [state.playlistId, currentTrack, state.currentTime, state.shuffle])
 
   return {
     audioRef: audioRef as RefObject<HTMLAudioElement | null>,
