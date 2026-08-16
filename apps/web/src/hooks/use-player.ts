@@ -35,7 +35,7 @@ export const usePlayer = () => {
   const stateRef = useRef(state)
   stateRef.current = state
 
-  const current = state.queue[state.index] ?? null
+  const currentTrack = state.queue[state.index] ?? null
 
   const loadQueue = useCallback(
     (
@@ -44,8 +44,8 @@ export const usePlayer = () => {
       startIndex = 0,
       options?: { autoplay?: boolean },
     ) => {
-      setState((prev) => ({
-        ...prev,
+      setState((previous) => ({
+        ...previous,
         playlistId,
         queue: tracks,
         index: Math.min(Math.max(0, startIndex), Math.max(0, tracks.length - 1)),
@@ -57,46 +57,48 @@ export const usePlayer = () => {
     [],
   )
 
-  const toggle = useCallback(() => {
+  const togglePlayPause = useCallback(() => {
     const audio = audioRef.current
     if (!audio || stateRef.current.queue.length === 0) return
     unlockDeckFoley()
     if (audio.paused) {
       playFoley('needleDown')
       void audio.play()
-      setState((s) => ({ ...s, playing: true }))
+      setState((previous) => ({ ...previous, playing: true }))
     } else {
       playFoley('needleUp')
       audio.pause()
-      setState((s) => ({ ...s, playing: false }))
+      setState((previous) => ({ ...previous, playing: false }))
     }
   }, [])
 
   const pause = useCallback(() => {
     const audio = audioRef.current
     audio?.pause()
-    setState((s) => (s.playing ? { ...s, playing: false } : s))
+    setState((previous) =>
+      previous.playing ? { ...previous, playing: false } : previous,
+    )
   }, [])
 
   const seek = useCallback((time: number) => {
     const audio = audioRef.current
     if (!audio) return
     audio.currentTime = time
-    setState((s) => ({ ...s, currentTime: time }))
+    setState((previous) => ({ ...previous, currentTime: time }))
   }, [])
 
-  const playAt = useCallback((index: number) => {
+  const playTrackAt = useCallback((index: number) => {
     if (stateRef.current.queue.length === 0) return
     if (!stateRef.current.playing) {
       unlockDeckFoley()
       playFoley('needleDown')
     }
-    setState((s) => {
-      if (s.index === index && s.playing) {
-        return { ...s, playing: true }
+    setState((previous) => {
+      if (previous.index === index && previous.playing) {
+        return { ...previous, playing: true }
       }
       return {
-        ...s,
+        ...previous,
         index,
         currentTime: 0,
         playing: true,
@@ -105,47 +107,49 @@ export const usePlayer = () => {
   }, [])
 
   const next = useCallback(() => {
-    setState((s) => {
-      if (s.queue.length === 0) return s
-      if (s.shuffle) {
-        if (s.queue.length === 1) return { ...s, playing: true }
-        let nextIndex = s.index
-        while (nextIndex === s.index) {
-          nextIndex = Math.floor(Math.random() * s.queue.length)
+    setState((previous) => {
+      if (previous.queue.length === 0) return previous
+      if (previous.shuffle) {
+        if (previous.queue.length === 1) return { ...previous, playing: true }
+        let nextIndex = previous.index
+        while (nextIndex === previous.index) {
+          nextIndex = Math.floor(Math.random() * previous.queue.length)
         }
-        return { ...s, index: nextIndex, currentTime: 0, playing: true }
+        return { ...previous, index: nextIndex, currentTime: 0, playing: true }
       }
-      const index = (s.index + 1) % s.queue.length
-      return { ...s, index, currentTime: 0, playing: true }
+      const index = (previous.index + 1) % previous.queue.length
+      return { ...previous, index, currentTime: 0, playing: true }
     })
   }, [])
 
   const prev = useCallback(() => {
-    setState((s) => {
-      if (s.queue.length === 0) return s
+    setState((previous) => {
+      if (previous.queue.length === 0) return previous
       const audio = audioRef.current
       if (audio && audio.currentTime > 3) {
         audio.currentTime = 0
-        return { ...s, currentTime: 0, playing: true }
+        return { ...previous, currentTime: 0, playing: true }
       }
-      const index = (s.index - 1 + s.queue.length) % s.queue.length
-      return { ...s, index, currentTime: 0, playing: true }
+      const index =
+        (previous.index - 1 + previous.queue.length) % previous.queue.length
+      return { ...previous, index, currentTime: 0, playing: true }
     })
   }, [])
 
   const toggleShuffle = useCallback(() => {
-    setState((s) => ({ ...s, shuffle: !s.shuffle }))
+    setState((previous) => ({ ...previous, shuffle: !previous.shuffle }))
   }, [])
 
   // Bind audio element source when track changes
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio || !state.playlistId || !current) return
+    if (!audio || !state.playlistId || !currentTrack) return
 
-    const url = mediaUrl(state.playlistId, current.videoId, 'audio')
-    const needsLoad = !audio.src.endsWith(url) && audio.dataset.videoId !== current.videoId
-    if (needsLoad || audio.dataset.videoId !== current.videoId) {
-      audio.dataset.videoId = current.videoId
+    const url = mediaUrl(state.playlistId, currentTrack.videoId, 'audio')
+    const needsLoad =
+      !audio.src.endsWith(url) && audio.dataset.videoId !== currentTrack.videoId
+    if (needsLoad || audio.dataset.videoId !== currentTrack.videoId) {
+      audio.dataset.videoId = currentTrack.videoId
       audio.src = url
       audio.load()
     }
@@ -153,41 +157,45 @@ export const usePlayer = () => {
     if (state.playing) {
       const playPromise = audio.play()
       playPromise?.catch(() => {
-        setState((s) => ({ ...s, playing: false }))
+        setState((previous) => ({ ...previous, playing: false }))
       })
     } else {
       audio.pause()
     }
-  }, [current, state.playlistId, state.playing, state.index])
+  }, [currentTrack, state.playlistId, state.playing, state.index])
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    const onTime = () =>
-      setState((s) => ({
-        ...s,
+    const onTimeUpdate = () =>
+      setState((previous) => ({
+        ...previous,
         currentTime: audio.currentTime,
-        duration: Number.isFinite(audio.duration) ? audio.duration : s.duration,
+        duration: Number.isFinite(audio.duration)
+          ? audio.duration
+          : previous.duration,
       }))
-    const onMeta = () =>
-      setState((s) => ({
-        ...s,
+    const onLoadedMetadata = () =>
+      setState((previous) => ({
+        ...previous,
         duration: Number.isFinite(audio.duration) ? audio.duration : 0,
       }))
     const onEnded = () => next()
-    const onPlay = () => setState((s) => ({ ...s, playing: true }))
-    const onPause = () => setState((s) => ({ ...s, playing: false }))
+    const onPlay = () =>
+      setState((previous) => ({ ...previous, playing: true }))
+    const onPause = () =>
+      setState((previous) => ({ ...previous, playing: false }))
 
-    audio.addEventListener('timeupdate', onTime)
-    audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('loadedmetadata', onLoadedMetadata)
     audio.addEventListener('ended', onEnded)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
 
     return () => {
-      audio.removeEventListener('timeupdate', onTime)
-      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata)
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
@@ -197,12 +205,12 @@ export const usePlayer = () => {
   return {
     audioRef: audioRef as RefObject<HTMLAudioElement | null>,
     state,
-    current,
+    currentTrack,
     loadQueue,
-    toggle,
+    togglePlayPause,
     pause,
     seek,
-    playAt,
+    playTrackAt,
     next,
     prev,
     toggleShuffle,

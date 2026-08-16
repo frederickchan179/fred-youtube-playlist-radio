@@ -1,34 +1,34 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
-type Graph = {
-  audioCtx: AudioContext
+type AnalyserGraph = {
+  audioContext: AudioContext
   analyser: AnalyserNode
-  data: Uint8Array<ArrayBuffer>
+  frequencies: Uint8Array<ArrayBuffer>
 }
 
-const graphs = new WeakMap<HTMLAudioElement, Graph>()
+const graphs = new WeakMap<HTMLAudioElement, AnalyserGraph>()
 
-const createData = (length: number): Uint8Array<ArrayBuffer> =>
+const createFrequencyBuffer = (length: number): Uint8Array<ArrayBuffer> =>
   new Uint8Array(new ArrayBuffer(length))
 
-const getGraph = (audio: HTMLAudioElement): Graph | null => {
+const getGraph = (audio: HTMLAudioElement): AnalyserGraph | null => {
   const existing = graphs.get(audio)
   if (existing) return existing
 
   try {
-    const audioCtx = new AudioContext()
-    const analyser = audioCtx.createAnalyser()
+    const audioContext = new AudioContext()
+    const analyser = audioContext.createAnalyser()
     analyser.fftSize = 256
     analyser.smoothingTimeConstant = 0.78
 
-    const source = audioCtx.createMediaElementSource(audio)
+    const source = audioContext.createMediaElementSource(audio)
     source.connect(analyser)
-    analyser.connect(audioCtx.destination)
+    analyser.connect(audioContext.destination)
 
-    const graph: Graph = {
-      audioCtx,
+    const graph: AnalyserGraph = {
+      audioContext,
       analyser,
-      data: createData(analyser.frequencyBinCount),
+      frequencies: createFrequencyBuffer(analyser.frequencyBinCount),
     }
     graphs.set(audio, graph)
     return graph
@@ -37,41 +37,41 @@ const getGraph = (audio: HTMLAudioElement): Graph | null => {
   }
 }
 
-const bandLevel = (data: Uint8Array, from: number, to: number): number => {
+const bandLevel = (data: Uint8Array, fromBin: number, toBin: number): number => {
   let sum = 0
-  let n = 0
-  const end = Math.min(to, data.length)
-  for (let i = from; i < end; i += 1) {
-    sum += data[i] ?? 0
-    n += 1
+  let sampleCount = 0
+  const end = Math.min(toBin, data.length)
+  for (let index = fromBin; index < end; index += 1) {
+    sum += data[index] ?? 0
+    sampleCount += 1
   }
-  if (n === 0) return 0
-  return Math.min(1, sum / n / 220)
+  if (sampleCount === 0) return 0
+  return Math.min(1, sum / sampleCount / 220)
 }
 
-const CX = 50
-const CY = 58
-const ARC_R = 36
-const NEEDLE_R = 34
-const SWEEP = 48
-const RED_FROM = 18
+const CENTER_X = 50
+const CENTER_Y = 58
+const ARC_RADIUS = 36
+const NEEDLE_LENGTH = 34
+const SWEEP_DEG = 48
+const RED_ZONE_FROM_DEG = 18
 
-const polar = (deg: number, radius = ARC_R) => {
-  const rad = (deg * Math.PI) / 180
+const polar = (deg: number, radius = ARC_RADIUS) => {
+  const radians = (deg * Math.PI) / 180
   return {
-    x: CX + radius * Math.sin(rad),
-    y: CY - radius * Math.cos(rad),
+    x: CENTER_X + radius * Math.sin(radians),
+    y: CENTER_Y - radius * Math.cos(radians),
   }
 }
 
 const arcPath = (fromDeg: number, toDeg: number) => {
   const from = polar(fromDeg)
   const to = polar(toDeg)
-  return `M ${from.x.toFixed(2)} ${from.y.toFixed(2)} A ${ARC_R} ${ARC_R} 0 0 1 ${to.x.toFixed(2)} ${to.y.toFixed(2)}`
+  return `M ${from.x.toFixed(2)} ${from.y.toFixed(2)} A ${ARC_RADIUS} ${ARC_RADIUS} 0 0 1 ${to.x.toFixed(2)} ${to.y.toFixed(2)}`
 }
 
-const SCALE_ARC = arcPath(-SWEEP, SWEEP)
-const RED_ARC = arcPath(RED_FROM, SWEEP)
+const SCALE_ARC = arcPath(-SWEEP_DEG, SWEEP_DEG)
+const RED_ARC = arcPath(RED_ZONE_FROM_DEG, SWEEP_DEG)
 
 type Props = {
   audioRef: RefObject<HTMLAudioElement | null>
@@ -95,22 +95,32 @@ export const VuMeters = ({ audioRef, playing }: Props) => {
 
     const tick = async () => {
       if (cancelled) return
-      if (graph.audioCtx.state === 'suspended' && playing) {
-        await graph.audioCtx.resume()
+      if (graph.audioContext.state === 'suspended' && playing) {
+        await graph.audioContext.resume()
       }
       if (cancelled) return
 
-      graph.analyser.getByteFrequencyData(graph.data)
-      const targetL = playing ? bandLevel(graph.data, 1, 10) : 0
-      const targetR = playing ? bandLevel(graph.data, 18, 48) : 0
-      leftLevel.current += (targetL - leftLevel.current) * 0.18
-      rightLevel.current += (targetR - rightLevel.current) * 0.18
+      graph.analyser.getByteFrequencyData(graph.frequencies)
+      const targetLeft = playing ? bandLevel(graph.frequencies, 1, 10) : 0
+      const targetRight = playing ? bandLevel(graph.frequencies, 18, 48) : 0
+      leftLevel.current += (targetLeft - leftLevel.current) * 0.18
+      rightLevel.current += (targetRight - rightLevel.current) * 0.18
 
-      const toNeedle = (level: number) => -SWEEP + level * SWEEP * 2
+      const needleAngle = (level: number) => -SWEEP_DEG + level * SWEEP_DEG * 2
       const left = leftRef.current
       const right = rightRef.current
-      if (left) left.setAttribute('transform', `rotate(${toNeedle(leftLevel.current)} ${CX} ${CY})`)
-      if (right) right.setAttribute('transform', `rotate(${toNeedle(rightLevel.current)} ${CX} ${CY})`)
+      if (left) {
+        left.setAttribute(
+          'transform',
+          `rotate(${needleAngle(leftLevel.current)} ${CENTER_X} ${CENTER_Y})`,
+        )
+      }
+      if (right) {
+        right.setAttribute(
+          'transform',
+          `rotate(${needleAngle(rightLevel.current)} ${CENTER_X} ${CENTER_Y})`,
+        )
+      }
 
       raf = requestAnimationFrame(() => {
         void tick()
@@ -164,16 +174,16 @@ const MeterFace = ({
       <path d={RED_ARC} fill="none" stroke="var(--accent)" strokeWidth="1.4" />
       <line
         ref={needleRef}
-        x1={CX}
-        y1={CY}
-        x2={CX}
-        y2={CY - NEEDLE_R}
+        x1={CENTER_X}
+        y1={CENTER_Y}
+        x2={CENTER_X}
+        y2={CENTER_Y - NEEDLE_LENGTH}
         stroke="#e8c48a"
         strokeWidth="1.2"
         strokeLinecap="round"
-        transform={`rotate(${-SWEEP} ${CX} ${CY})`}
+        transform={`rotate(${-SWEEP_DEG} ${CENTER_X} ${CENTER_Y})`}
       />
-      <circle cx={CX} cy={CY} r="2.4" fill="#cfd3d5" />
+      <circle cx={CENTER_X} cy={CENTER_Y} r="2.4" fill="#cfd3d5" />
     </svg>
   </div>
 )

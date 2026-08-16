@@ -10,10 +10,6 @@ import {
 import { RadioShell } from './components/radio-shell'
 
 export const App = () => {
-  return <RadioApp />
-}
-
-const RadioApp = () => {
   const player = usePlayer()
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([])
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
@@ -27,21 +23,19 @@ const RadioApp = () => {
     ;(async () => {
       try {
         setLoading(true)
-        // Don't flash a red error during brief API restarts (HMR)
         const list = await fetchPlaylists()
         if (cancelled) return
         setPlaylists(list)
-        setActivePlaylistId((current) => {
-          if (current && list.some((p) => p.playlistId === current)) return current
+        setActivePlaylistId((selectedId) => {
+          if (selectedId && list.some((playlist) => playlist.playlistId === selectedId)) {
+            return selectedId
+          }
           return list[0]?.playlistId ?? null
         })
         setError(null)
       } catch (err) {
         if (!cancelled) {
-          const message =
-            err instanceof Error ? err.message : 'Failed to load playlists'
-          // Keep prior playlists visible if we already have them
-          setError(message)
+          setError(err instanceof Error ? err.message : 'Failed to load playlists')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -64,9 +58,9 @@ const RadioApp = () => {
         setLoading(true)
         const manifest = await fetchPlaylist(activePlaylistId)
         if (cancelled) return
-        const ready = manifest.tracks.filter((t) => t.status === 'ready')
-        setTracks(ready)
-        player.loadQueue(activePlaylistId, ready, 0, { autoplay: false })
+        const readyTracks = manifest.tracks.filter((track) => track.status === 'ready')
+        setTracks(readyTracks)
+        player.loadQueue(activePlaylistId, readyTracks, 0, { autoplay: false })
         setError(null)
       } catch (err) {
         if (!cancelled) {
@@ -80,28 +74,20 @@ const RadioApp = () => {
     return () => {
       cancelled = true
     }
+    // loadQueue is stable; player object is not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePlaylistId, libraryVersion])
 
-  const onSelectPlaylist = (id: string) => {
-    setActivePlaylistId(id)
-  }
-
-  const onImported = useCallback((playlistId: string) => {
+  const refreshLibrary = useCallback((playlistId: string) => {
     setActivePlaylistId(playlistId)
-    setLibraryVersion((v) => v + 1)
-  }, [])
-
-  const onSynced = useCallback((playlistId: string) => {
-    setActivePlaylistId(playlistId)
-    setLibraryVersion((v) => v + 1)
+    setLibraryVersion((version) => version + 1)
   }, [])
 
   const onRemoveVideo = useCallback(
     async (videoId: string) => {
       if (!activePlaylistId) return
       await removeTrackFromPlaylist(activePlaylistId, videoId)
-      setLibraryVersion((v) => v + 1)
+      setLibraryVersion((version) => version + 1)
     },
     [activePlaylistId],
   )
@@ -111,9 +97,9 @@ const RadioApp = () => {
       playlists={playlists}
       activePlaylistId={activePlaylistId}
       tracks={tracks}
-      onSelectPlaylist={onSelectPlaylist}
-      onImported={onImported}
-      onSynced={onSynced}
+      onSelectPlaylist={setActivePlaylistId}
+      onImported={refreshLibrary}
+      onSynced={refreshLibrary}
       onRemoveVideo={onRemoveVideo}
       player={player}
       error={error}

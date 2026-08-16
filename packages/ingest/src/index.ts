@@ -18,17 +18,12 @@ import {
   playlistManifestSchema,
   playlistUrlSchema,
   type PlaylistManifest,
+  type SyncProgress,
   type SyncSummary,
   type Track,
 } from '@radio/shared'
 
-export type SyncProgress = {
-  phase: 'meta' | 'download' | 'done' | 'error'
-  message: string
-  current?: number
-  total?: number
-  trackTitle?: string
-}
+export type { SyncProgress }
 
 export type SyncOptions = {
   download?: boolean
@@ -81,7 +76,7 @@ const ensureBins = async (): Promise<void> => {
   }
 }
 
-const readManifest = async (
+export const readManifest = async (
   repoRoot: string,
   playlistId: string,
 ): Promise<PlaylistManifest | null> => {
@@ -91,7 +86,7 @@ const readManifest = async (
   return playlistManifestSchema.parse(raw)
 }
 
-const writeManifestAtomic = async (
+export const writeManifestAtomic = async (
   repoRoot: string,
   playlistId: string,
   manifest: PlaylistManifest,

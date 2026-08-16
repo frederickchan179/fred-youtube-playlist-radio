@@ -1,64 +1,39 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import type { ImportJob } from '../lib/api'
+import { useState, type FormEvent } from 'react'
+import { startImport, type ImportJob } from '../lib/api'
+import { useJobPoll } from '../hooks/use-job-poll'
 
 type Props = {
   onImported: (playlistId: string) => void
-  busy?: boolean
 }
 
-export const ImportForm = ({ onImported, busy = false }: Props) => {
+export const ImportForm = ({ onImported }: Props) => {
   const [url, setUrl] = useState('')
   const [job, setJob] = useState<ImportJob | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const running =
-    submitting ||
-    busy ||
-    job?.status === 'queued' ||
-    job?.status === 'running'
+    submitting || job?.status === 'queued' || job?.status === 'running'
 
-  useEffect(() => {
-    if (!job || job.status === 'done' || job.status === 'error') return
-
-    let cancelled = false
-    const tick = async () => {
-      try {
-        const res = await fetch(`/api/imports/${job.id}`)
-        const data = (await res.json()) as { job?: ImportJob; error?: string }
-        if (!res.ok || !data.job) {
-          throw new Error(data.error ?? 'Failed to poll import')
-        }
-        if (cancelled) return
-        setJob(data.job)
-
-        if (data.job.status === 'done' && data.job.summary) {
-          setSubmitting(false)
-          onImported(data.job.summary.playlistId)
-          setUrl('')
-        }
-        if (data.job.status === 'error') {
-          setSubmitting(false)
-          setError(data.job.error ?? 'Import failed')
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setSubmitting(false)
-          setError(err instanceof Error ? err.message : 'Import failed')
-        }
+  useJobPoll({
+    job,
+    onProgress: setJob,
+    onFinished: (finished) => {
+      setSubmitting(false)
+      if (finished.status === 'done' && finished.summary) {
+        onImported(finished.summary.playlistId)
+        setUrl('')
+        return
       }
-    }
-
-    const id = window.setInterval(() => {
-      void tick()
-    }, 1200)
-    void tick()
-
-    return () => {
-      cancelled = true
-      window.clearInterval(id)
-    }
-  }, [job, onImported])
+      if (finished.status === 'error') {
+        setError(finished.error ?? 'Import failed')
+      }
+    },
+    onRequestFailed: (message) => {
+      setSubmitting(false)
+      setError(message)
+    },
+  })
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -67,20 +42,7 @@ export const ImportForm = ({ onImported, busy = false }: Props) => {
     setJob(null)
 
     try {
-      const res = await fetch('/api/playlists/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
-      })
-      const data = (await res.json()) as {
-        jobId?: string
-        job?: ImportJob
-        error?: string
-      }
-      if (!res.ok || !data.job) {
-        throw new Error(data.error ?? 'Could not start import')
-      }
-      setJob(data.job)
+      setJob(await startImport(url.trim()))
     } catch (err) {
       setSubmitting(false)
       setError(err instanceof Error ? err.message : 'Could not start import')
@@ -89,11 +51,11 @@ export const ImportForm = ({ onImported, busy = false }: Props) => {
 
   const progressLabel = (() => {
     if (!job?.progress) return null
-    const p = job.progress
-    if (p.phase === 'download' && p.current && p.total) {
-      return `${p.current}/${p.total} · ${p.trackTitle ?? 'Downloading…'}`
+    const progress = job.progress
+    if (progress.phase === 'download' && progress.current && progress.total) {
+      return `${progress.current}/${progress.total} · ${progress.trackTitle ?? 'Downloading…'}`
     }
-    return p.message
+    return progress.message
   })()
 
   return (
@@ -107,7 +69,7 @@ export const ImportForm = ({ onImported, busy = false }: Props) => {
             autoFocus
             value={url}
             disabled={running}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(event) => setUrl(event.target.value)}
             placeholder="youtube.com/playlist?list=… or a single video"
             className="field"
           />

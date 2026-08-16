@@ -139,62 +139,6 @@ button {
   border-radius: 999px;
 }
 
-.seek {
-  --seek-progress: 0%;
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
-  width: 100%;
-  height: 16px;
-  margin: 0;
-  background: transparent;
-  outline: none;
-  cursor: pointer;
-}
-
-.seek::-webkit-slider-runnable-track {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    var(--chrome) 0%,
-    var(--chrome) var(--seek-progress),
-    color-mix(in oklab, var(--ink) 14%, transparent) var(--seek-progress),
-    color-mix(in oklab, var(--ink) 14%, transparent) 100%
-  );
-}
-
-.seek::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 10px;
-  height: 10px;
-  margin-top: -4.5px;
-  border-radius: 50%;
-  background: var(--chrome);
-  border: 1px solid var(--bg-0);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
-  cursor: pointer;
-}
-
-.seek::-moz-range-track {
-  height: 1px;
-  background: color-mix(in oklab, var(--ink) 14%, transparent);
-}
-
-.seek::-moz-range-progress {
-  height: 1px;
-  background: var(--chrome);
-}
-
-.seek::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  border: 1px solid var(--bg-0);
-  border-radius: 50%;
-  background: var(--chrome);
-  cursor: pointer;
-}
-
 .grain {
   pointer-events: none;
   position: absolute;
@@ -580,10 +524,10 @@ button {
   animation-play-state: paused;
 }
 
-.vinyl-hit[data-awaiting='true'] .vinyl,
-.vinyl-hit[data-awaiting='true'] .vinyl-fill,
-.vinyl-hit[data-awaiting='true'] .vinyl-spark,
-.vinyl-hit[data-awaiting='true'] .vinyl-edge {
+.vinyl-hit[data-placing='true'] .vinyl,
+.vinyl-hit[data-placing='true'] .vinyl-fill,
+.vinyl-hit[data-placing='true'] .vinyl-spark,
+.vinyl-hit[data-placing='true'] .vinyl-edge {
   opacity: 0;
 }
 

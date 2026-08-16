@@ -6,7 +6,7 @@ type Props = {
   playlists: PlaylistSummary[]
   activePlaylistId: string | null
   sleeveOpen?: boolean
-  lockScroll?: boolean
+  pauseAutoScroll?: boolean
   onSelect: (id: string, origin: HTMLElement) => void
   onSynced: (id: string) => void
   error: string | null
@@ -20,7 +20,7 @@ export const PressingBin = ({
   playlists,
   activePlaylistId,
   sleeveOpen = false,
-  lockScroll = false,
+  pauseAutoScroll = false,
   onSelect,
   onSynced,
   error,
@@ -31,18 +31,18 @@ export const PressingBin = ({
 
   useEffect(() => {
     const rail = railRef.current
-    if (!rail || lockScroll) return
+    if (!rail || pauseAutoScroll) return
     const slot = rail.querySelector<HTMLElement>(
       '.pressing-slot:has([data-active="true"])',
     )
     if (!slot) return
     const railBox = rail.getBoundingClientRect()
     const slotBox = slot.getBoundingClientRect()
-    const delta =
+    const offsetToCenter =
       slotBox.left + slotBox.width / 2 - (railBox.left + railBox.width / 2)
-    if (Math.abs(delta) < 8) return
-    rail.scrollBy({ left: delta, behavior: 'smooth' })
-  }, [activePlaylistId, playlists.length, lockScroll])
+    if (Math.abs(offsetToCenter) < 8) return
+    rail.scrollBy({ left: offsetToCenter, behavior: 'smooth' })
+  }, [activePlaylistId, playlists.length, pauseAutoScroll])
 
   useEffect(() => {
     const rail = railRef.current
@@ -122,7 +122,6 @@ export const PressingBin = ({
                   playlistTitle={playlist.title}
                   canSync={playlist.canSync}
                   onSynced={onSynced}
-                  variant="pin"
                 />
               </div>
             </div>

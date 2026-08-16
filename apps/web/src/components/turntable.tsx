@@ -14,19 +14,20 @@ type Props = {
   duration: number
   shuffle: boolean
   hasTrack: boolean
-  onToggle: () => void
+  onPlayPause: () => void
   onSeek: (time: number) => void
   onPrev: () => void
   onNext: () => void
   onShuffle: () => void
   disabled?: boolean
-  awaitingDisc?: boolean
+  isPlacingDisc?: boolean
   discId?: string | null
   children?: ReactNode
 }
 
-const INNER = 0.31
-const OUTER = 0.92
+/** Groove band used for cueing: label hole → rim, as a fraction of platter radius. */
+const GROOVE_INNER = 0.31
+const GROOVE_OUTER = 0.92
 
 export const Turntable = ({
   cover,
@@ -35,13 +36,13 @@ export const Turntable = ({
   duration,
   shuffle,
   hasTrack,
-  onToggle,
+  onPlayPause,
   onSeek,
   onPrev,
   onNext,
   onShuffle,
   disabled = false,
-  awaitingDisc = false,
+  isPlacingDisc = false,
   discId = null,
   children,
 }: Props) => {
@@ -52,27 +53,26 @@ export const Turntable = ({
   })
   const [cueing, setCueing] = useState(false)
 
-  const clamped = Math.min(1, Math.max(0, progress))
-  const armAngle = playing || cueing ? 6 + clamped * 24 : -22
+  const controlsLocked = disabled || isPlacingDisc
+  const playhead = Math.min(1, Math.max(0, progress))
+  const armAngle = playing || cueing ? 6 + playhead * 24 : -22
 
   const seekFromPoint = (clientX: number, clientY: number) => {
     const well = wellRef.current
     if (!well || duration <= 0) return
     const rect = well.getBoundingClientRect()
-    const cx = rect.left + rect.width / 2
-    const cy = rect.top + rect.height / 2
-    const dx = clientX - cx
-    const dy = clientY - cy
-    const dist = Math.hypot(dx, dy)
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const distanceFromCenter = Math.hypot(clientX - centerX, clientY - centerY)
     const radius = rect.width / 2
-    const inner = radius * INNER
-    const outer = radius * OUTER
-    const t = 1 - (dist - inner) / (outer - inner)
-    onSeek(Math.min(duration, Math.max(0, t * duration)))
+    const inner = radius * GROOVE_INNER
+    const outer = radius * GROOVE_OUTER
+    const cue = 1 - (distanceFromCenter - inner) / (outer - inner)
+    onSeek(Math.min(duration, Math.max(0, cue * duration)))
   }
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (disabled || awaitingDisc) return
+    if (controlsLocked) return
     dragRef.current = { active: true, moved: false }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -88,7 +88,7 @@ export const Turntable = ({
 
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragRef.current.active) return
-    const wasDrag = dragRef.current.moved
+    const didDrag = dragRef.current.moved
     dragRef.current = { active: false, moved: false }
     setCueing(false)
     try {
@@ -96,7 +96,7 @@ export const Turntable = ({
     } catch {
       /* already released */
     }
-    if (!wasDrag && !disabled && !awaitingDisc) onToggle()
+    if (!didDrag && !controlsLocked) onPlayPause()
   }
 
   return (
@@ -116,14 +116,14 @@ export const Turntable = ({
 
             <div
               role="slider"
-              tabIndex={disabled || awaitingDisc ? -1 : 0}
+              tabIndex={controlsLocked ? -1 : 0}
               aria-label="Vinyl platter. Click to play or pause. Drag toward the label to seek."
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={Math.round(clamped * 100)}
-              aria-disabled={disabled || awaitingDisc}
+              aria-valuenow={Math.round(playhead * 100)}
+              aria-disabled={controlsLocked}
               data-platter=""
-              data-awaiting={awaitingDisc ? 'true' : 'false'}
+              data-placing={isPlacingDisc ? 'true' : 'false'}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -176,25 +176,25 @@ export const Turntable = ({
               <span className="spindle-shaft" />
             </div>
 
-            <Tonearm angle={armAngle} lowered={playing || cueing} cueing={cueing} />
+            <Tonearm angle={armAngle} cueing={cueing} />
           </div>
 
           <div className="deck-console">
             <div className="console-main">{children}</div>
             <div className="deck-panel">
               <div className="deck-keys">
-                <DeckKey label="Prev" onClick={onPrev} disabled={!hasTrack || awaitingDisc}>
+                <DeckKey label="Prev" onClick={onPrev} disabled={!hasTrack || isPlacingDisc}>
                   <SkipIcon dir="prev" />
                 </DeckKey>
                 <DeckKey
                   label={playing ? 'Pause' : 'Play'}
-                  onClick={onToggle}
-                  disabled={!hasTrack || awaitingDisc}
+                  onClick={onPlayPause}
+                  disabled={!hasTrack || isPlacingDisc}
                   lit={playing}
                 >
                   {playing ? <PauseIcon /> : <PlayIcon />}
                 </DeckKey>
-                <DeckKey label="Next" onClick={onNext} disabled={!hasTrack || awaitingDisc}>
+                <DeckKey label="Next" onClick={onNext} disabled={!hasTrack || isPlacingDisc}>
                   <SkipIcon dir="next" />
                 </DeckKey>
                 <DeckKey label="Shuffle" onClick={onShuffle} lit={shuffle}>
@@ -242,7 +242,6 @@ const Tonearm = ({
   cueing,
 }: {
   angle: number
-  lowered: boolean
   cueing: boolean
 }) => (
   <svg

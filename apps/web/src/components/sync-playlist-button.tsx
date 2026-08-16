@@ -1,24 +1,19 @@
-import { useEffect, useState } from 'react'
-import type { ImportJob } from '../lib/api'
+import { useState } from 'react'
+import { startSync, type ImportJob } from '../lib/api'
+import { useJobPoll } from '../hooks/use-job-poll'
 
 type Props = {
   playlistId: string | null
   playlistTitle?: string
   canSync?: boolean
-  disabled?: boolean
   onSynced: (playlistId: string) => void
-  size?: 'sm' | 'md'
-  variant?: 'chip' | 'pin'
 }
 
 export const SyncPlaylistButton = ({
   playlistId,
   playlistTitle,
   canSync = true,
-  disabled = false,
   onSynced,
-  size = 'sm',
-  variant = 'chip',
 }: Props) => {
   const [job, setJob] = useState<ImportJob | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -26,67 +21,34 @@ export const SyncPlaylistButton = ({
 
   const running =
     submitting || job?.status === 'queued' || job?.status === 'running'
-  const blocked = !canSync
 
-  useEffect(() => {
-    if (!job || job.status === 'done' || job.status === 'error') return
-
-    let cancelled = false
-    const tick = async () => {
-      try {
-        const res = await fetch(`/api/imports/${job.id}`)
-        const data = (await res.json()) as { job?: ImportJob; error?: string }
-        if (!res.ok || !data.job) {
-          throw new Error(data.error ?? 'Failed to poll sync')
-        }
-        if (cancelled) return
-        setJob(data.job)
-
-        if (data.job.status === 'done' && data.job.summary) {
-          setSubmitting(false)
-          onSynced(data.job.summary.playlistId)
-        }
-        if (data.job.status === 'error') {
-          setSubmitting(false)
-          setError(data.job.error ?? 'Sync failed')
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setSubmitting(false)
-          setError(err instanceof Error ? err.message : 'Sync failed')
-        }
+  useJobPoll({
+    job,
+    onProgress: setJob,
+    onFinished: (finished) => {
+      setSubmitting(false)
+      if (finished.status === 'done' && finished.summary) {
+        onSynced(finished.summary.playlistId)
+        return
       }
-    }
-
-    const id = window.setInterval(() => {
-      void tick()
-    }, 1200)
-    void tick()
-
-    return () => {
-      cancelled = true
-      window.clearInterval(id)
-    }
-  }, [job, onSynced])
+      if (finished.status === 'error') {
+        setError(finished.error ?? 'Sync failed')
+      }
+    },
+    onRequestFailed: (message) => {
+      setSubmitting(false)
+      setError(message)
+    },
+  })
 
   const onClick = async () => {
-    if (!playlistId || running || blocked) return
+    if (!playlistId || running || !canSync) return
     setError(null)
     setSubmitting(true)
     setJob(null)
 
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/sync`, {
-        method: 'POST',
-      })
-      const data = (await res.json()) as {
-        job?: ImportJob
-        error?: string
-      }
-      if (!res.ok || !data.job) {
-        throw new Error(data.error ?? 'Could not start sync')
-      }
-      setJob(data.job)
+      setJob(await startSync(playlistId))
     } catch (err) {
       setSubmitting(false)
       setError(err instanceof Error ? err.message : 'Could not start sync')
@@ -95,66 +57,47 @@ export const SyncPlaylistButton = ({
 
   const progressLabel = (() => {
     if (!job?.progress) return null
-    const p = job.progress
-    if (p.phase === 'download' && p.current && p.total) {
-      return `${p.current}/${p.total}`
+    const progress = job.progress
+    if (progress.phase === 'download' && progress.current && progress.total) {
+      return `${progress.current}/${progress.total}`
     }
-    return p.message
+    return progress.message
   })()
 
   const label = (() => {
     if (error) return error
     if (running && progressLabel) return `Syncing · ${progressLabel}`
     if (running) return 'Syncing…'
-    if (blocked) return 'Only YouTube playlists can sync'
+    if (!canSync) return 'Only YouTube playlists can sync'
     if (job?.status === 'done' && job.summary) {
       return `Updated · ${job.summary.added} new`
     }
     return playlistTitle ? `Sync “${playlistTitle}”` : 'Sync'
   })()
 
-  const dim = variant === 'pin' ? 'h-6 w-6' : size === 'sm' ? 'h-8 w-8' : 'h-11 w-11'
-  const icon = variant === 'pin' ? 11 : size === 'sm' ? 14 : 16
-
   if (!canSync) return null
 
   return (
     <button
       type="button"
-      onClick={(e) => {
-        e.stopPropagation()
+      onClick={(event) => {
+        event.stopPropagation()
         void onClick()
       }}
-      disabled={!playlistId || disabled || running || blocked}
+      disabled={!playlistId || running}
       title={label}
       aria-label={label}
-      className={`grid ${dim} shrink-0 place-items-center disabled:opacity-40 ${variant === 'pin' ? 'pressing-sync' : ''}`}
-      style={
-        variant === 'pin'
-          ? undefined
-          : {
-              borderRadius: 'var(--radius)',
-              border: '1px solid var(--line)',
-              color: running || error ? 'var(--accent)' : 'var(--muted)',
-              background: 'color-mix(in oklab, var(--panel) 70%, transparent)',
-            }
-      }
+      className="pressing-sync grid h-6 w-6 shrink-0 place-items-center disabled:opacity-40"
     >
-      <SyncIcon size={icon} spinning={running} />
+      <SyncIcon spinning={running} />
     </button>
   )
 }
 
-const SyncIcon = ({
-  size,
-  spinning,
-}: {
-  size: number
-  spinning: boolean
-}) => (
+const SyncIcon = ({ spinning }: { spinning: boolean }) => (
   <svg
-    width={size}
-    height={size}
+    width={11}
+    height={11}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"

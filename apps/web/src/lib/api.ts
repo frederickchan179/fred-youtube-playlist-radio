@@ -1,4 +1,4 @@
-import type { PlaylistManifest, SyncSummary } from '@radio/shared'
+import type { PlaylistManifest, SyncProgress, SyncSummary } from '@radio/shared'
 
 export type PlaylistSummary = {
   playlistId: string
@@ -10,13 +10,7 @@ export type PlaylistSummary = {
   canSync: boolean
 }
 
-export type ImportProgress = {
-  phase: 'meta' | 'download' | 'done' | 'error'
-  message: string
-  current?: number
-  total?: number
-  trackTitle?: string
-}
+export type ImportProgress = SyncProgress
 
 export type ImportJob = {
   id: string
@@ -29,7 +23,7 @@ export type ImportJob = {
   updatedAt: string
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const readErrorMessage = async (res: Response): Promise<string> => {
   const body = (await res.json().catch(() => null)) as { error?: string } | null
@@ -97,6 +91,28 @@ export const removeTrackFromPlaylist = async (
   })
 }
 
+export const fetchImportJob = async (id: string): Promise<ImportJob> => {
+  const data = await fetchJson<{ job: ImportJob }>(`/api/imports/${id}`)
+  return data.job
+}
+
+export const startImport = async (url: string): Promise<ImportJob> => {
+  const data = await fetchJson<{ job: ImportJob }>('/api/playlists/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  return data.job
+}
+
+export const startSync = async (playlistId: string): Promise<ImportJob> => {
+  const data = await fetchJson<{ job: ImportJob }>(
+    `/api/playlists/${playlistId}/sync`,
+    { method: 'POST' },
+  )
+  return data.job
+}
+
 
 export const mediaUrl = (
   playlistId: string,
@@ -107,7 +123,7 @@ export const mediaUrl = (
 
 export const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
+  const minutes = Math.floor(seconds / 60)
+  const remainder = Math.floor(seconds % 60)
+  return `${minutes}:${remainder.toString().padStart(2, '0')}`
 }

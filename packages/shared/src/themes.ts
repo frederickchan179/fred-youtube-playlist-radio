@@ -1,32 +1,5 @@
 /** Single identity — dark listening room + chrome turntable */
 
 export const analogueTheme = {
-  label: 'Analogue',
   tagline: 'Listen. Watch. Feel.',
-  cssVars: {
-    '--bg-0': '#080706',
-    '--bg-1': '#100e0c',
-    '--bg-2': '#1a1613',
-    '--ink': '#f4f0ea',
-    '--muted': '#8a847c',
-    '--accent': '#c4a574',
-    '--accent-2': '#bcc4c5',
-    '--glow': 'rgba(196, 165, 116, 0.2)',
-    '--panel': 'rgba(16, 13, 11, 0.92)',
-    '--line': 'rgba(244, 240, 234, 0.1)',
-    '--viz-a': '#c4a574',
-    '--viz-b': '#bcc4c5',
-    '--walnut': '#4e2e2e',
-    '--walnut-deep': '#2a1a16',
-    '--chrome': '#d5d8da',
-    '--chrome-dim': '#7a8084',
-    '--plinth': '#161210',
-    '--radius': '2px',
-    '--radius-box': '4px',
-    '--ease': 'cubic-bezier(0.22, 1, 0.36, 1)',
-    '--letter-brand': '0.42em',
-    '--font-display': '"IBM Plex Sans", system-ui, sans-serif',
-    '--font-body': '"IBM Plex Sans", system-ui, sans-serif',
-    '--font-mono': '"IBM Plex Mono", ui-monospace, monospace',
-  } satisfies Record<string, string>,
 }

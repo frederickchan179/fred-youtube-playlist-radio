@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, unlink } from 'node:fs/promises'
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
@@ -9,18 +9,17 @@ import { cors } from 'hono/cors'
 import { z } from 'zod'
 import {
   importFromUrl,
-  syncPlaylist,
+  readManifest,
+  writeManifestAtomic,
   type SyncProgress,
 } from '@radio/ingest'
 import {
-  manifestPath,
   playlistDir,
   playlistsRoot,
   resolveRepoRoot,
 } from '@radio/shared/paths'
 import {
   MANUAL_PLAYLIST_ID,
-  playlistManifestSchema,
   playlistUrlSchema,
   type PlaylistManifest,
   type SyncSummary,
@@ -44,14 +43,13 @@ type ImportJob = {
 const jobs = new Map<string, ImportJob>()
 let activeJobId: string | null = null
 
-const readManifest = async (
+const loadManifest = (playlistId: string): Promise<PlaylistManifest | null> =>
+  readManifest(repoRoot, playlistId)
+
+const saveManifest = (
   playlistId: string,
-): Promise<PlaylistManifest | null> => {
-  const file = manifestPath(repoRoot, playlistId)
-  if (!existsSync(file)) return null
-  const raw = JSON.parse(await readFile(file, 'utf8')) as unknown
-  return playlistManifestSchema.parse(raw)
-}
+  manifest: PlaylistManifest,
+): Promise<void> => writeManifestAtomic(repoRoot, playlistId, manifest)
 
 const listPlaylistIds = async (): Promise<string[]> => {
   const root = playlistsRoot(repoRoot)
@@ -81,16 +79,6 @@ const touchJob = (
   }
   jobs.set(job.id, next)
   return next
-}
-
-const writeManifestAtomic = async (
-  playlistId: string,
-  manifest: PlaylistManifest,
-): Promise<void> => {
-  const target = manifestPath(repoRoot, playlistId)
-  const tmp = `${target}.${process.pid}.tmp`
-  await writeFile(tmp, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
-  await rename(tmp, target)
 }
 
 const removeTrackFiles = async (
@@ -177,7 +165,7 @@ app.get('/api/playlists', async (c) => {
   const ids = await listPlaylistIds()
   const playlists = []
   for (const id of ids) {
-    const manifest = await readManifest(id)
+    const manifest = await loadManifest(id)
     if (!manifest) continue
     const ready = manifest.tracks.filter((t) => t.status === 'ready')
     playlists.push({
@@ -195,7 +183,7 @@ app.get('/api/playlists', async (c) => {
 })
 
 app.get('/api/playlists/:id', async (c) => {
-  const manifest = await readManifest(c.req.param('id'))
+  const manifest = await loadManifest(c.req.param('id'))
   if (!manifest) return c.json({ error: 'Playlist not found' }, 404)
   return c.json({
     ...manifest,
@@ -266,7 +254,7 @@ app.post('/api/playlists/:id/sync', async (c) => {
   if (playlistId === MANUAL_PLAYLIST_ID) {
     return c.json({ error: 'Saved videos playlist cannot be synced' }, 400)
   }
-  const manifest = await readManifest(playlistId)
+  const manifest = await loadManifest(playlistId)
   if (!manifest) return c.json({ error: 'Playlist not found' }, 404)
 
   if (activeJobId) {
@@ -301,7 +289,7 @@ app.delete('/api/playlists/:id/tracks/:videoId', async (c) => {
     return c.json({ error: 'Only Saved videos playlist is editable' }, 403)
   }
 
-  const manifest = await readManifest(playlistId)
+  const manifest = await loadManifest(playlistId)
   if (!manifest) return c.json({ error: 'Playlist not found' }, 404)
 
   const nextTracks = manifest.tracks
@@ -318,7 +306,7 @@ app.delete('/api/playlists/:id/tracks/:videoId', async (c) => {
     syncedAt: new Date().toISOString(),
     tracks: nextTracks,
   }
-  await writeManifestAtomic(playlistId, nextManifest)
+  await saveManifest(playlistId, nextManifest)
 
   return c.json({ ok: true, playlistId, removedVideoId: videoId })
 })
@@ -328,7 +316,7 @@ app.get('/api/playlists/:id/media/:videoId', async (c) => {
   const videoId = c.req.param('videoId')
   const kind = c.req.query('kind') === 'thumb' ? 'thumb' : 'audio'
 
-  const manifest = await readManifest(playlistId)
+  const manifest = await loadManifest(playlistId)
   if (!manifest) return c.json({ error: 'Playlist not found' }, 404)
 
   const track = manifest.tracks.find((t) => t.videoId === videoId)

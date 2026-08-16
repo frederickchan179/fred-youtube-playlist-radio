@@ -1,63 +1,58 @@
 import { useLayoutEffect, useRef } from 'react'
 import { durationArmMs, easeRoomCss } from '../lib/motion'
-import {
-  measureDiscFlight,
-  prefersReducedMotion,
-  type DiscFlight,
-} from '../lib/place-disc'
+import type { DiscBox, DiscFlight } from '../lib/place-disc'
 
-export { measureDiscFlight, prefersReducedMotion }
-export type { DiscFlight }
+const START_TILT_DEG = -18
+const MID_TILT_DEG = 9
+const HAND_LIFT_PX = 36
+const ARC_AT = 0.55
 
 type Props = {
   flight: DiscFlight
   onLanded: () => void
 }
 
-const transformAt = (
-  cx: number,
-  cy: number,
-  size: number,
-  dest: number,
-  rotate: number,
+const discTransform = (
+  { centerX, centerY, size }: DiscBox,
+  platterSize: number,
+  tiltDeg: number,
 ) => {
-  const scale = size / dest
-  return `translate3d(${cx - dest / 2}px, ${cy - dest / 2}px, 0) rotate(${rotate}deg) scale(${scale})`
+  const scale = size / platterSize
+  const left = centerX - platterSize / 2
+  const top = centerY - platterSize / 2
+  return `translate3d(${left}px, ${top}px, 0) rotate(${tiltDeg}deg) scale(${scale})`
 }
+
+const pointAlong = (from: DiscBox, to: DiscBox, progress: number): DiscBox => ({
+  centerX: from.centerX + (to.centerX - from.centerX) * progress,
+  centerY: from.centerY + (to.centerY - from.centerY) * progress,
+  size: from.size + (to.size - from.size) * progress,
+})
 
 export const VinylFlyer = ({ flight, onLanded }: Props) => {
   const nodeRef = useRef<HTMLDivElement | null>(null)
-  const landedRef = useRef(onLanded)
-  landedRef.current = onLanded
+  const onLandedRef = useRef(onLanded)
+  onLandedRef.current = onLanded
 
-  const dest = Math.max(1, flight.to.size)
-  const start = transformAt(
-    flight.from.cx,
-    flight.from.cy,
-    flight.from.size,
-    dest,
-    -18,
-  )
+  const platterSize = Math.max(1, flight.to.size)
+  const startTransform = discTransform(flight.from, platterSize, START_TILT_DEG)
 
   useLayoutEffect(() => {
     const node = nodeRef.current
     if (!node) return
 
     const { from, to } = flight
-    const size = Math.max(1, to.size)
-    const midCx = from.cx + (to.cx - from.cx) * 0.55
-    const midCy = from.cy + (to.cy - from.cy) * 0.42 - 36
-    const midSize = from.size + (to.size - from.size) * 0.58
-
-    const fromFrame = transformAt(from.cx, from.cy, from.size, size, -18)
-    const mid = transformAt(midCx, midCy, midSize, size, 9)
-    const end = transformAt(to.cx, to.cy, to.size, size, 0)
+    const peak = pointAlong(from, to, ARC_AT)
+    const lifted: DiscBox = {
+      ...peak,
+      centerY: peak.centerY - HAND_LIFT_PX,
+    }
 
     const animation = node.animate(
       [
-        { transform: fromFrame, offset: 0 },
-        { transform: mid, offset: 0.58 },
-        { transform: end, offset: 1 },
+        { transform: discTransform(from, platterSize, START_TILT_DEG), offset: 0 },
+        { transform: discTransform(lifted, platterSize, MID_TILT_DEG), offset: 0.58 },
+        { transform: discTransform(to, platterSize, 0), offset: 1 },
       ],
       {
         duration: durationArmMs,
@@ -66,21 +61,21 @@ export const VinylFlyer = ({ flight, onLanded }: Props) => {
       },
     )
 
-    let cancelled = false
-    let settled = false
+    let wasCancelled = false
+    let didLand = false
     const finish = () => {
-      if (cancelled) return
-      settled = true
-      landedRef.current()
+      if (wasCancelled) return
+      didLand = true
+      onLandedRef.current()
     }
 
     animation.addEventListener('finish', finish)
     return () => {
-      cancelled = true
+      wasCancelled = true
       animation.removeEventListener('finish', finish)
-      if (!settled) animation.cancel()
+      if (!didLand) animation.cancel()
     }
-    // New disc = new key. Positions are read from this render.
+    // Restart only when a new disc takes off. Path is from this render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flight.key])
 
@@ -88,7 +83,7 @@ export const VinylFlyer = ({ flight, onLanded }: Props) => {
     <div
       ref={nodeRef}
       className="vinyl-flyer"
-      style={{ width: dest, height: dest, transform: start }}
+      style={{ width: platterSize, height: platterSize, transform: startTransform }}
       aria-hidden
     >
       <div className="vinyl h-full w-full">

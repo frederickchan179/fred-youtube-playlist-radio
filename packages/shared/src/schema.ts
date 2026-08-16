@@ -97,3 +97,13 @@ export const syncSummarySchema = z.object({
 })
 
 export type SyncSummary = z.infer<typeof syncSummarySchema>
+
+export const syncProgressSchema = z.object({
+  phase: z.enum(['meta', 'download', 'done', 'error']),
+  message: z.string(),
+  current: z.number().optional(),
+  total: z.number().optional(),
+  trackTitle: z.string().optional(),
+})
+
+export type SyncProgress = z.infer<typeof syncProgressSchema>

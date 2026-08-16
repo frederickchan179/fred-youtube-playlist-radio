@@ -1,109 +1,109 @@
-/** Synthesized deck noises. Short buffers, no network, no decode hitch. */
+/** Quiet deck noises, generated once. Unlock on the click that starts them. */
 
 export type DeckSound = 'sleeve' | 'drop' | 'needleDown' | 'needleUp'
 
-type Kit = Record<DeckSound, AudioBuffer>
+type SoundBuffers = Record<DeckSound, AudioBuffer>
 
-const MASTER = 0.2
+const MASTER_GAIN = 0.2
 
-let ctx: AudioContext | null = null
-let kit: Kit | null = null
-
-const fillNoise = (data: Float32Array, fn: (i: number, t: number, white: number) => number) => {
-  let brown = 0
-  for (let i = 0; i < data.length; i += 1) {
-    const white = Math.random() * 2 - 1
-    brown = (brown + 0.02 * white) / 1.02
-    data[i] = fn(i, i / data.length, white * 0.55 + brown * 0.45)
-  }
+const VOLUME: Record<DeckSound, number> = {
+  sleeve: 0.7,
+  drop: 0.85,
+  needleDown: 0.55,
+  needleUp: 0.55,
 }
 
-const makeBuffer = (
-  audio: AudioContext,
-  seconds: number,
-  fn: (i: number, t: number, white: number) => number,
+let audioContext: AudioContext | null = null
+let buffers: SoundBuffers | null = null
+
+const mixBrownNoise = (white: number, previousBrown: number) =>
+  (previousBrown + 0.02 * white) / 1.02
+
+const amplitudeEnvelope = (progress: number, attack: number, release: number) => {
+  if (progress < attack) return progress / attack
+  return Math.exp(-(progress - attack) / Math.max(0.001, release))
+}
+
+const sine = (frequencyHz: number, sampleIndex: number, sampleRate: number) =>
+  Math.sin((2 * Math.PI * frequencyHz * sampleIndex) / sampleRate)
+
+const renderBuffer = (
+  context: AudioContext,
+  durationSec: number,
+  sample: (args: {
+    sampleIndex: number
+    progress: number
+    noise: number
+    sampleRate: number
+  }) => number,
 ): AudioBuffer => {
-  const length = Math.max(1, Math.floor(audio.sampleRate * seconds))
-  const buffer = audio.createBuffer(1, length, audio.sampleRate)
-  fillNoise(buffer.getChannelData(0), fn)
+  const frameCount = Math.max(1, Math.floor(context.sampleRate * durationSec))
+  const buffer = context.createBuffer(1, frameCount, context.sampleRate)
+  const channel = buffer.getChannelData(0)
+  let brown = 0
+
+  for (let sampleIndex = 0; sampleIndex < frameCount; sampleIndex += 1) {
+    const white = Math.random() * 2 - 1
+    brown = mixBrownNoise(white, brown)
+    const noise = white * 0.55 + brown * 0.45
+    channel[sampleIndex] = sample({
+      sampleIndex,
+      progress: sampleIndex / frameCount,
+      noise,
+      sampleRate: context.sampleRate,
+    })
+  }
+
   return buffer
 }
 
-const env = (t: number, attack: number, release: number) => {
-  if (t < attack) return t / attack
-  return Math.exp((- (t - attack)) / Math.max(0.001, release))
-}
-
-const buildKit = (audio: AudioContext): Kit => {
-  const sleeve = makeBuffer(audio, 0.28, (_i, t, n) => {
-    const flutter = 0.72 + Math.sin(t * 86) * 0.28
-    return n * env(t, 0.012, 0.09) * flutter * 0.55
-  })
-
-  const drop = makeBuffer(audio, 0.22, (i, t, n) => {
-    const sr = audio.sampleRate
+const buildBuffers = (context: AudioContext): SoundBuffers => ({
+  sleeve: renderBuffer(context, 0.28, ({ progress, noise }) => {
+    const paperFlutter = 0.72 + Math.sin(progress * 86) * 0.28
+    return noise * amplitudeEnvelope(progress, 0.012, 0.09) * paperFlutter * 0.55
+  }),
+  drop: renderBuffer(context, 0.22, ({ sampleIndex, progress, noise, sampleRate }) => {
     const thud =
-      Math.sin((2 * Math.PI * 78 * i) / sr) * env(t, 0.004, 0.07) * 0.7 +
-      Math.sin((2 * Math.PI * 156 * i) / sr) * env(t, 0.003, 0.045) * 0.28
-    const slap = n * env(t, 0.002, 0.018) * 0.22
-    return thud + slap
-  })
-
-  const needleDown = makeBuffer(audio, 0.14, (i, t, n) => {
-    const sr = audio.sampleRate
-    const tick = Math.sin((2 * Math.PI * 2400 * i) / sr) * env(t, 0.001, 0.012) * 0.35
-    const body = Math.sin((2 * Math.PI * 420 * i) / sr) * env(t, 0.002, 0.03) * 0.18
-    const crackle = n * env(t, 0.001, 0.04) * 0.12
+      sine(78, sampleIndex, sampleRate) * amplitudeEnvelope(progress, 0.004, 0.07) * 0.7 +
+      sine(156, sampleIndex, sampleRate) * amplitudeEnvelope(progress, 0.003, 0.045) * 0.28
+    const feltSlap = noise * amplitudeEnvelope(progress, 0.002, 0.018) * 0.22
+    return thud + feltSlap
+  }),
+  needleDown: renderBuffer(context, 0.14, ({ sampleIndex, progress, noise, sampleRate }) => {
+    const tick = sine(2400, sampleIndex, sampleRate) * amplitudeEnvelope(progress, 0.001, 0.012) * 0.35
+    const body = sine(420, sampleIndex, sampleRate) * amplitudeEnvelope(progress, 0.002, 0.03) * 0.18
+    const crackle = noise * amplitudeEnvelope(progress, 0.001, 0.04) * 0.12
     return tick + body + crackle
-  })
+  }),
+  needleUp: renderBuffer(context, 0.1, ({ sampleIndex, progress, noise, sampleRate }) => {
+    const tick = sine(1650, sampleIndex, sampleRate) * amplitudeEnvelope(progress, 0.001, 0.018) * 0.22
+    return tick + noise * amplitudeEnvelope(progress, 0.001, 0.03) * 0.08
+  }),
+})
 
-  const needleUp = makeBuffer(audio, 0.1, (i, t, n) => {
-    const sr = audio.sampleRate
-    const tick = Math.sin((2 * Math.PI * 1650 * i) / sr) * env(t, 0.001, 0.018) * 0.22
-    return tick + n * env(t, 0.001, 0.03) * 0.08
-  })
-
-  return { sleeve, drop, needleDown, needleUp }
-}
-
-const ensure = async (): Promise<{ audio: AudioContext; kit: Kit } | null> => {
+const getDeckAudio = (): { context: AudioContext; buffers: SoundBuffers } | null => {
   try {
-    if (!ctx) {
-      ctx = new AudioContext()
-    }
-    if (ctx.state === 'suspended') {
-      await ctx.resume()
-    }
-    if (!kit) {
-      kit = buildKit(ctx)
-    }
-    return { audio: ctx, kit }
+    if (!audioContext) audioContext = new AudioContext()
+    if (audioContext.state === 'suspended') void audioContext.resume()
+    if (!buffers) buffers = buildBuffers(audioContext)
+    return { context: audioContext, buffers }
   } catch {
     return null
   }
 }
 
 export const unlockDeckFoley = (): void => {
-  void ensure()
+  getDeckAudio()
 }
 
 export const playFoley = (sound: DeckSound): void => {
-  try {
-    if (!ctx) ctx = new AudioContext()
-    if (ctx.state === 'suspended') void ctx.resume()
-    if (!kit) kit = buildKit(ctx)
-    const source = ctx.createBufferSource()
-    const gain = ctx.createGain()
-    const trim =
-      sound === 'needleDown' || sound === 'needleUp' ? 0.55 : sound === 'drop' ? 0.85 : 0.7
-    source.buffer = kit[sound]
-    gain.gain.value = MASTER * trim
-    source.connect(gain)
-    gain.connect(ctx.destination)
-    source.start()
-  } catch {
-    /* Web Audio unavailable */
-  }
+  const deck = getDeckAudio()
+  if (!deck) return
+  const source = deck.context.createBufferSource()
+  const gain = deck.context.createGain()
+  source.buffer = deck.buffers[sound]
+  gain.gain.value = MASTER_GAIN * VOLUME[sound]
+  source.connect(gain)
+  gain.connect(deck.context.destination)
+  source.start()
 }
-
-export const playDeckFoley = playFoley

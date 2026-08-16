@@ -1,44 +1,42 @@
-export type DiscRect = {
-  cx: number
-  cy: number
+export type DiscBox = {
+  centerX: number
+  centerY: number
   size: number
 }
 
 export type DiscFlight = {
   key: number
   cover: string | null
-  from: DiscRect
-  to: DiscRect
+  from: DiscBox
+  to: DiscBox
 }
 
 export const prefersReducedMotion = (): boolean =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export const discRectFromElement = (el: Element, minSize = 72): DiscRect => {
-  const box = el.getBoundingClientRect()
-  const size = Math.max(minSize, Math.min(box.width, box.height))
+const boxFromElement = (element: Element, minimumSize = 0): DiscBox => {
+  const box = element.getBoundingClientRect()
+  const size = Math.max(minimumSize, Math.min(box.width, box.height))
   return {
-    cx: box.left + box.width / 2,
-    cy: box.top + box.height / 2,
+    centerX: box.left + box.width / 2,
+    centerY: box.top + box.height / 2,
     size,
   }
 }
 
-export const originFromJacket = (jacket: HTMLElement): Element =>
-  jacket.querySelector('.pressing-vinyl') ??
-  jacket.querySelector('.pressing-jacket') ??
-  jacket
-
-export const platterElement = (): Element | null =>
-  document.querySelector('[data-platter]')
-
+/** Jacket vinyl → platter. Null if the platter is not on screen yet. */
 export const measureDiscFlight = (
-  origin: HTMLElement,
-): { from: DiscRect; to: DiscRect } | null => {
-  const platter = platterElement()
+  jacket: HTMLElement,
+): { from: DiscBox; to: DiscBox } | null => {
+  const platter = document.querySelector('[data-platter]')
   if (!platter) return null
+
+  const vinylPeekingFromSleeve = jacket.querySelector('.pressing-vinyl')
+  const sleeve = jacket.querySelector('.pressing-jacket') ?? jacket
+  const start = vinylPeekingFromSleeve ?? sleeve
+
   return {
-    from: discRectFromElement(originFromJacket(origin), 72),
-    to: discRectFromElement(platter, 0),
+    from: boxFromElement(start, 72),
+    to: boxFromElement(platter),
   }
 }
