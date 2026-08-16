@@ -146,15 +146,8 @@ export const RadioShell = ({
 
         {playingCover ? (
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              backgroundImage: `url(${playingCover})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(64px) saturate(0.75) brightness(0.22)',
-              transform: 'scale(1.2)',
-              opacity: 0.08,
-            }}
+            className="room-stain"
+            style={{ backgroundImage: `url(${playingCover})` }}
           />
         ) : null}
 

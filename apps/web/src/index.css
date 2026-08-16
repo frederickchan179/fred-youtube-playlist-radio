@@ -103,7 +103,7 @@ body {
   margin: 0;
   font-family: var(--font-body);
   color: var(--ink);
-  background: #050403;
+  background: #120e0b;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -143,8 +143,9 @@ button {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  opacity: 0.07;
-  mix-blend-mode: overlay;
+  z-index: 4;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -154,10 +155,10 @@ button {
   inset: 0;
   z-index: 3;
   background: radial-gradient(
-    circle 92vmin at var(--light-x) var(--light-y),
-    transparent 18%,
-    rgb(0 0 0 / 0.22) 52%,
-    rgb(0 0 0 / 0.78) 100%
+    circle 108vmin at var(--light-x) var(--light-y),
+    transparent 22%,
+    rgb(8 5 3 / 0.12) 54%,
+    rgb(6 4 3 / 0.46) 100%
   );
 }
 
@@ -168,28 +169,63 @@ button {
   height: 100dvh;
   background:
     radial-gradient(
-      circle 62vmin at var(--light-x) var(--light-y),
-      rgb(255 226 178 / 0.26),
-      rgb(196 150 90 / 0.07) 42%,
-      transparent 72%
+      circle 72vmin at var(--light-x) var(--light-y),
+      rgb(255 214 150 / calc(0.4 * var(--light-gain))),
+      rgb(186 128 72 / calc(0.16 * var(--light-gain))) 38%,
+      transparent 74%
     ),
-    linear-gradient(180deg, #161310 0%, #0c0a08 54%, #060504 100%);
+    radial-gradient(circle at 22% 18%, rgb(86 62 42 / 0.28), transparent 36%),
+    radial-gradient(circle at 78% 12%, rgb(42 30 22 / 0.35), transparent 32%),
+    linear-gradient(
+      180deg,
+      #322820 0%,
+      #241c16 42%,
+      #1a1410 68%,
+      #16110d 78%,
+      #120e0b 100%
+    );
 }
 
 .stage::before {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgb(62 38 28 / 0.28) 0 2px,
-      rgb(28 16 12 / 0.16) 2px 5px
-    ),
-    linear-gradient(180deg, #241610, #100c0a 55%, #0a0807);
-  mask-image: linear-gradient(180deg, transparent 0 46%, #000 82%);
-  opacity: 0.26;
+  background: repeating-linear-gradient(
+    90deg,
+    #1c140f 0 24px,
+    #100c0a 24px 26px,
+    #221810 26px 50px,
+    #0e0a08 50px 52px,
+    #1a120e 52px 74px,
+    #120e0b 74px 76px
+  );
+  mask-image: linear-gradient(180deg, transparent 0 72%, #000 90%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0 72%, #000 90%);
+}
+
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0 78%, rgb(8 5 3 / 0.35) 88%);
+}
+
+.room-stain {
+  pointer-events: none;
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(72px) saturate(0.55) brightness(0.38);
+  opacity: 0.16;
+  transform: scale(1.08);
+  mask-image: linear-gradient(180deg, #000 0 52%, transparent 76%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0 52%, transparent 76%);
 }
 
 .deck-slot {
