@@ -9,6 +9,7 @@ export type PlaylistSummary = {
   title: string
   sourceUrl: string
   syncedAt: string
+  acquiredAt: string
   trackCount: number
   coverVideoId: string | null
   canSync: boolean
@@ -135,4 +136,14 @@ export const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60)
   const remainder = Math.floor(seconds % 60)
   return `${minutes}:${remainder.toString().padStart(2, '0')}`
+}
+
+export const formatSleeveDate = (iso: string): string | null => {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }

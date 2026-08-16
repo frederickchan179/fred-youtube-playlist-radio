@@ -361,6 +361,7 @@ export const syncPlaylist = async (
     sourceUrl: url,
     title,
     syncedAt: now,
+    acquiredAt: existing?.acquiredAt ?? now,
     tracks: nextTracks,
   }
 
@@ -458,6 +459,7 @@ export const importVideoToManualPlaylist = async (
     sourceUrl: 'https://youtube.com',
     title: MANUAL_PLAYLIST_TITLE,
     syncedAt: now,
+    acquiredAt: existing?.acquiredAt ?? now,
     tracks: existingTracks.sort((a, b) => a.index - b.index),
   }
 

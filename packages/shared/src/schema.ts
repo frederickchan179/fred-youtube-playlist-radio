@@ -20,6 +20,7 @@ export const playlistManifestSchema = z.object({
   sourceUrl: z.string().url(),
   title: z.string(),
   syncedAt: z.string(),
+  acquiredAt: z.string().optional(),
   tracks: z.array(trackSchema),
 })
 

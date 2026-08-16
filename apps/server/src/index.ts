@@ -161,6 +161,7 @@ app.get('/api/playlists', async (c) => {
       title: manifest.title,
       sourceUrl: manifest.sourceUrl,
       syncedAt: manifest.syncedAt,
+      acquiredAt: manifest.acquiredAt ?? manifest.syncedAt,
       trackCount: ready.length,
       coverVideoId: ready[0]?.videoId ?? null,
       canSync: manifest.playlistId !== MANUAL_PLAYLIST_ID,

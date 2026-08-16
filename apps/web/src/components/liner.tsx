@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { fade } from '../lib/motion'
+import { formatTime, type QueuedTrack } from '../lib/api'
 import { ImportForm } from './import-form'
 import { TrackList } from './ui'
-import type { QueuedTrack } from '../lib/api'
 
 type Props = {
   open: boolean
@@ -18,6 +18,9 @@ type Props = {
   onImported: (playlistId: string) => void
   loading: boolean
   error: string | null
+  acquiredOn?: string | null
+  totalSec?: number
+  plays?: number
 }
 
 export const Liner = ({
@@ -34,6 +37,9 @@ export const Liner = ({
   onImported,
   loading,
   error,
+  acquiredOn = null,
+  totalSec = 0,
+  plays = 0,
 }: Props) => (
   <aside className="liner" data-open={open ? 'true' : 'false'}>
     <div className="liner-inner">
@@ -69,6 +75,20 @@ export const Liner = ({
               <p className="mt-1 line-clamp-1 text-lg font-medium">
                 {mode === 'acquire' ? 'Bring a pressing in' : playlistTitle}
               </p>
+              {mode === 'album' ? (
+                <p
+                  className="mt-1 text-[0.65rem] text-[var(--muted)]"
+                  style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}
+                >
+                  {[
+                    acquiredOn ? `Acquired ${acquiredOn}` : null,
+                    formatTime(totalSec),
+                    `${plays} ${plays === 1 ? 'play' : 'plays'}`,
+                  ]
+                    .filter(Boolean)
+                    .join('  ·  ')}
+                </p>
+              ) : null}
             </motion.div>
           </AnimatePresence>
         </div>

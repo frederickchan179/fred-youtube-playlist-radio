@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { MANUAL_PLAYLIST_ID, analogueTheme, ON_AIR_PLAYLIST_ID, ON_AIR_PLAYLIST_TITLE } from '@radio/shared'
-import { mediaUrl, formatTime, type PlaylistSummary, type QueuedTrack } from '../lib/api'
+import { mediaUrl, formatTime, formatSleeveDate, type PlaylistSummary, type QueuedTrack } from '../lib/api'
 import { unlockDeckFoley } from '../lib/deck-foley'
 import { fade, fadeLift, roomTransition } from '../lib/motion'
 import type { PlayerApi } from '../hooks/use-player'
 import { usePlaceOnPlatter } from '../hooks/use-place-on-platter'
+import { usePlayCount } from '../hooks/use-play-count'
 import { useRoomLight } from '../hooks/use-room-light'
 import { ImportFlow } from './import-flow'
 import { Liner } from './liner'
@@ -88,6 +89,24 @@ export const RadioShell = ({
   const canEditSavedVideos = activePlaylistId === MANUAL_PLAYLIST_ID
   const playhead =
     state.duration > 0 ? state.currentTime / state.duration : 0
+  const plays = usePlayCount(
+    activePlaylistId,
+    currentTrack
+      ? `${currentTrack.sourcePlaylistId}:${currentTrack.videoId}`
+      : null,
+    state.playing,
+  )
+  const totalSec = tracks.reduce(
+    (sum, track) => sum + (track.durationSec ?? 0),
+    0,
+  )
+  const acquiredOn = isOnAir
+    ? null
+    : playlist?.acquiredAt
+      ? formatSleeveDate(playlist.acquiredAt)
+      : playlist?.syncedAt
+        ? formatSleeveDate(playlist.syncedAt)
+        : null
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -293,6 +312,9 @@ export const RadioShell = ({
             }}
             loading={loading}
             error={error}
+            acquiredOn={acquiredOn}
+            totalSec={totalSec}
+            plays={plays}
           />
         </PressingBin>
       </div>
