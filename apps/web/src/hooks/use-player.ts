@@ -36,8 +36,19 @@ export const usePlayer = () => {
   stateRef.current = state
 
   const pendingSeekRef = useRef<number | null>(null)
+  const runoutTimerRef = useRef<number | null>(null)
+  const inRunoutRef = useRef(false)
+  const nextRef = useRef<() => void>(() => undefined)
 
   const currentTrack = state.queue[state.index] ?? null
+
+  const clearRunout = () => {
+    if (runoutTimerRef.current != null) {
+      window.clearTimeout(runoutTimerRef.current)
+      runoutTimerRef.current = null
+    }
+    inRunoutRef.current = false
+  }
 
   const loadQueue = useCallback(
     (
@@ -46,6 +57,7 @@ export const usePlayer = () => {
       startIndex = 0,
       options?: { autoplay?: boolean; shuffle?: boolean; startTime?: number },
     ) => {
+      clearRunout()
       pendingSeekRef.current =
         typeof options?.startTime === 'number' && options.startTime > 0
           ? options.startTime
@@ -67,6 +79,13 @@ export const usePlayer = () => {
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current
     if (!audio || stateRef.current.queue.length === 0) return
+    if (inRunoutRef.current) {
+      clearRunout()
+      unlockDeckFoley()
+      playFoley('needleDown')
+      nextRef.current()
+      return
+    }
     unlockDeckFoley()
     if (audio.paused) {
       playFoley('needleDown')
@@ -80,6 +99,7 @@ export const usePlayer = () => {
   }, [])
 
   const pause = useCallback(() => {
+    clearRunout()
     const audio = audioRef.current
     audio?.pause()
     setState((previous) =>
@@ -95,6 +115,7 @@ export const usePlayer = () => {
   }, [])
 
   const playTrackAt = useCallback((index: number) => {
+    clearRunout()
     if (stateRef.current.queue.length === 0) return
     if (!stateRef.current.playing) {
       unlockDeckFoley()
@@ -114,6 +135,7 @@ export const usePlayer = () => {
   }, [])
 
   const next = useCallback(() => {
+    clearRunout()
     setState((previous) => {
       if (previous.queue.length === 0) return previous
       if (previous.shuffle) {
@@ -128,8 +150,10 @@ export const usePlayer = () => {
       return { ...previous, index, currentTime: 0, playing: true }
     })
   }, [])
+  nextRef.current = next
 
   const prev = useCallback(() => {
+    clearRunout()
     setState((previous) => {
       if (previous.queue.length === 0) return previous
       const audio = audioRef.current
@@ -206,7 +230,17 @@ export const usePlayer = () => {
         duration: Number.isFinite(audio.duration) ? audio.duration : 0,
       }))
     }
-    const onEnded = () => next()
+    const onEnded = () => {
+      playFoley('needleUp')
+      inRunoutRef.current = true
+      setState((previous) => ({ ...previous, playing: false }))
+      runoutTimerRef.current = window.setTimeout(() => {
+        runoutTimerRef.current = null
+        inRunoutRef.current = false
+        playFoley('needleDown')
+        nextRef.current()
+      }, 1400)
+    }
     const onPlay = () =>
       setState((previous) => ({ ...previous, playing: true }))
     const onPause = () =>
@@ -225,7 +259,7 @@ export const usePlayer = () => {
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
     }
-  }, [next])
+  }, [])
 
   useEffect(() => {
     if (!state.playlistId || !currentTrack) return
@@ -240,6 +274,8 @@ export const usePlayer = () => {
     }, 400)
     return () => window.clearTimeout(timer)
   }, [state.playlistId, currentTrack, state.currentTime, state.shuffle])
+
+  useEffect(() => () => clearRunout(), [])
 
   return {
     audioRef: audioRef as RefObject<HTMLAudioElement | null>,
