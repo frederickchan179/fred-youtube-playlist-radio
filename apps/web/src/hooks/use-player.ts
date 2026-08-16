@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { mediaUrl, type QueuedTrack } from '../lib/api'
 import { playFoley, unlockDeckFoley } from '../lib/deck-foley'
-import { writePlatterMemory } from '../lib/platter-memory'
+import { writePlatterQuery } from '../lib/platter-query'
 
 type PlayerState = {
   playlistId: string | null
@@ -261,18 +261,41 @@ export const usePlayer = () => {
     }
   }, [])
 
+  const lastSongKeyRef = useRef<string | null>(null)
+
   useEffect(() => {
     if (!state.playlistId || !currentTrack) return
-    const memory = {
-      playlistId: state.playlistId,
-      videoId: currentTrack.videoId,
-      currentTime: state.currentTime,
-      shuffle: state.shuffle,
-    }
-    const timer = window.setTimeout(() => {
-      writePlatterMemory(memory)
-    }, 400)
-    return () => window.clearTimeout(timer)
+    const songKey = `${state.playlistId}:${currentTrack.videoId}`
+    const songChanged = lastSongKeyRef.current !== songKey
+    const hadSong = lastSongKeyRef.current !== null
+    lastSongKeyRef.current = songKey
+    writePlatterQuery(
+      {
+        playlistId: state.playlistId,
+        videoId: currentTrack.videoId,
+        currentTime: state.currentTime,
+        shuffle: state.shuffle,
+      },
+      songChanged && hadSong ? 'push' : 'replace',
+    )
+  }, [state.playlistId, currentTrack, state.shuffle])
+
+  const lastWrittenSecondRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!state.playlistId || !currentTrack) return
+    const seconds = Math.floor(state.currentTime)
+    if (lastWrittenSecondRef.current === seconds) return
+    lastWrittenSecondRef.current = seconds
+    writePlatterQuery(
+      {
+        playlistId: state.playlistId,
+        videoId: currentTrack.videoId,
+        currentTime: state.currentTime,
+        shuffle: state.shuffle,
+      },
+      'replace',
+    )
   }, [state.playlistId, currentTrack, state.currentTime, state.shuffle])
 
   useEffect(() => () => clearRunout(), [])

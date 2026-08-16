@@ -10,7 +10,7 @@ import {
   type QueuedTrack,
 } from './lib/api'
 import { RadioShell } from './components/radio-shell'
-import { readPlatterMemory } from './lib/platter-memory'
+import { readPlatterQuery } from './lib/platter-query'
 
 export const App = () => {
   const player = usePlayer()
@@ -35,7 +35,7 @@ export const App = () => {
           if (selectedId && list.some((playlist) => playlist.playlistId === selectedId)) {
             return selectedId
           }
-          const remembered = readPlatterMemory()
+          const remembered = readPlatterQuery()
           if (
             remembered?.playlistId === ON_AIR_PLAYLIST_ID ||
             (remembered &&
@@ -80,7 +80,7 @@ export const App = () => {
               .filter((track) => track.status === 'ready')
               .map((track) => ({ ...track, sourcePlaylistId: activePlaylistId }))
         if (cancelled) return
-        const remembered = readPlatterMemory()
+        const remembered = readPlatterQuery()
         const restoreIndex =
           remembered && remembered.playlistId === activePlaylistId
             ? readyTracks.findIndex((track) => track.videoId === remembered.videoId)
@@ -127,6 +127,26 @@ export const App = () => {
     },
     [activePlaylistId],
   )
+
+  useEffect(() => {
+    const onPopState = () => {
+      const remembered = readPlatterQuery()
+      if (!remembered) return
+      setActivePlaylistId((selectedId) =>
+        selectedId === remembered.playlistId ? selectedId : remembered.playlistId,
+      )
+      if (remembered.playlistId !== lastLoadedPlaylistId.current) return
+      const index = tracks.findIndex((track) => track.videoId === remembered.videoId)
+      if (index < 0) return
+      player.loadQueue(remembered.playlistId, tracks, index, {
+        autoplay: player.state.playing,
+        shuffle: remembered.shuffle,
+        startTime: remembered.currentTime,
+      })
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [player.loadQueue, player.state.playing, tracks])
 
   return (
     <RadioShell
