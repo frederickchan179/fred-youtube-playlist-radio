@@ -20,6 +20,8 @@ type Props = {
   onNext: () => void
   onShuffle: () => void
   disabled?: boolean
+  awaitingDisc?: boolean
+  discId?: string | null
   children?: ReactNode
 }
 
@@ -39,6 +41,8 @@ export const Turntable = ({
   onNext,
   onShuffle,
   disabled = false,
+  awaitingDisc = false,
+  discId = null,
   children,
 }: Props) => {
   const wellRef = useRef<HTMLDivElement | null>(null)
@@ -68,7 +72,7 @@ export const Turntable = ({
   }
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (disabled) return
+    if (disabled || awaitingDisc) return
     dragRef.current = { active: true, moved: false }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -92,7 +96,7 @@ export const Turntable = ({
     } catch {
       /* already released */
     }
-    if (!wasDrag && !disabled) onToggle()
+    if (!wasDrag && !disabled && !awaitingDisc) onToggle()
   }
 
   return (
@@ -112,12 +116,14 @@ export const Turntable = ({
 
             <div
               role="slider"
-              tabIndex={disabled ? -1 : 0}
+              tabIndex={disabled || awaitingDisc ? -1 : 0}
               aria-label="Vinyl platter. Click to play or pause. Drag toward the label to seek."
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.round(clamped * 100)}
-              aria-disabled={disabled}
+              aria-disabled={disabled || awaitingDisc}
+              data-platter=""
+              data-awaiting={awaitingDisc ? 'true' : 'false'}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -125,10 +131,11 @@ export const Turntable = ({
               className="vinyl-hit z-10 cursor-pointer touch-none"
             >
               <div
+                key={discId ?? 'empty'}
                 className="vinyl vinyl-spin h-full w-full"
                 data-paused={String(!playing || cueing)}
               >
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {cover ? (
                     <motion.img
                       key={cover}
@@ -141,7 +148,7 @@ export const Turntable = ({
                 </AnimatePresence>
                 <div className="vinyl-grooves" />
                 <div className="vinyl-label">
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait" initial={false}>
                     {cover ? (
                       <motion.img
                         key={cover}
@@ -176,18 +183,18 @@ export const Turntable = ({
             <div className="console-main">{children}</div>
             <div className="deck-panel">
               <div className="deck-keys">
-                <DeckKey label="Prev" onClick={onPrev} disabled={!hasTrack}>
+                <DeckKey label="Prev" onClick={onPrev} disabled={!hasTrack || awaitingDisc}>
                   <SkipIcon dir="prev" />
                 </DeckKey>
                 <DeckKey
                   label={playing ? 'Pause' : 'Play'}
                   onClick={onToggle}
-                  disabled={!hasTrack}
+                  disabled={!hasTrack || awaitingDisc}
                   lit={playing}
                 >
                   {playing ? <PauseIcon /> : <PlayIcon />}
                 </DeckKey>
-                <DeckKey label="Next" onClick={onNext} disabled={!hasTrack}>
+                <DeckKey label="Next" onClick={onNext} disabled={!hasTrack || awaitingDisc}>
                   <SkipIcon dir="next" />
                 </DeckKey>
                 <DeckKey label="Shuffle" onClick={onShuffle} lit={shuffle}>

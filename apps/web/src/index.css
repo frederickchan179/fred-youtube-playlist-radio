@@ -470,6 +470,12 @@ button {
   border-radius: 50%;
 }
 
+.pressing[data-on-platter='true'] .pressing-vinyl {
+  opacity: 0;
+  transform: translateY(12%) scale(0.86);
+  transition: none;
+}
+
 .vinyl {
   position: relative;
   isolation: isolate;
@@ -572,6 +578,29 @@ button {
 
 .vinyl-spin[data-paused='true'] {
   animation-play-state: paused;
+}
+
+.vinyl-hit[data-awaiting='true'] .vinyl,
+.vinyl-hit[data-awaiting='true'] .vinyl-fill,
+.vinyl-hit[data-awaiting='true'] .vinyl-spark,
+.vinyl-hit[data-awaiting='true'] .vinyl-edge {
+  opacity: 0;
+}
+
+.vinyl-flyer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  contain: layout;
+  backface-visibility: hidden;
+}
+
+.vinyl-flyer .vinyl-grooves {
+  filter: none;
 }
 
 @keyframes vinyl-spin {
@@ -1062,6 +1091,15 @@ button {
   opacity: 0;
 }
 
+.bin[data-spines='true'] .pressing[data-on-platter='true'] .pressing-vinyl,
+.bin[data-spines='true'] .pressing-slot:hover .pressing[data-on-platter='true'] .pressing-vinyl,
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing[data-on-platter='true'] .pressing-vinyl,
+.bin[data-spines='true'] .pressing-slot:has([data-on-platter='true']) .pressing-vinyl {
+  opacity: 0;
+  transform: translateY(12%) scale(0.86);
+  pointer-events: none;
+}
+
 .bin[data-spines='true'] .pressing-acquire {
   width: 7.4rem;
 }
@@ -1087,6 +1125,9 @@ button {
   box-shadow:
     0 4px 10px rgb(0 0 0 / 0.4),
     inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  transition:
+    opacity var(--motion) var(--ease),
+    transform var(--motion) var(--ease);
 }
 
 .pressing-jacket {
@@ -1271,6 +1312,13 @@ button {
   pointer-events: auto;
   opacity: 1;
   translate: -50% 0;
+}
+
+.stage:has(.vinyl-flyer) .liner {
+  pointer-events: none;
+  opacity: 0;
+  translate: -50% 0.75rem;
+  transition: none;
 }
 
 .liner-inner {
@@ -1499,6 +1547,10 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .vinyl-spin {
     animation: none;
+  }
+
+  .vinyl-flyer {
+    display: none;
   }
 
   .pressing-jacket,

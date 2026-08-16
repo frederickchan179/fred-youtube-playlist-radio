@@ -6,7 +6,8 @@ type Props = {
   playlists: PlaylistSummary[]
   activePlaylistId: string | null
   sleeveOpen?: boolean
-  onSelect: (id: string) => void
+  lockScroll?: boolean
+  onSelect: (id: string, origin: HTMLElement) => void
   onSynced: (id: string) => void
   error: string | null
   acquire?: ReactNode
@@ -19,6 +20,7 @@ export const PressingBin = ({
   playlists,
   activePlaylistId,
   sleeveOpen = false,
+  lockScroll = false,
   onSelect,
   onSynced,
   error,
@@ -29,7 +31,7 @@ export const PressingBin = ({
 
   useEffect(() => {
     const rail = railRef.current
-    if (!rail) return
+    if (!rail || lockScroll) return
     const slot = rail.querySelector<HTMLElement>(
       '.pressing-slot:has([data-active="true"])',
     )
@@ -40,7 +42,7 @@ export const PressingBin = ({
       slotBox.left + slotBox.width / 2 - (railBox.left + railBox.width / 2)
     if (Math.abs(delta) < 8) return
     rail.scrollBy({ left: delta, behavior: 'smooth' })
-  }, [activePlaylistId, playlists.length])
+  }, [activePlaylistId, playlists.length, lockScroll])
 
   useEffect(() => {
     const rail = railRef.current
@@ -91,9 +93,10 @@ export const PressingBin = ({
             <div key={playlist.playlistId} className="pressing-slot">
               <button
                 type="button"
-                onClick={() => onSelect(playlist.playlistId)}
+                onClick={(event) => onSelect(playlist.playlistId, event.currentTarget)}
                 className="pressing"
                 data-active={active ? 'true' : 'false'}
+                data-on-platter={active ? 'true' : 'false'}
                 aria-pressed={active}
                 aria-expanded={active && sleeveOpen}
                 aria-label={`${playlist.title}, ${meta}`}

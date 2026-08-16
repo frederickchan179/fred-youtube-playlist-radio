@@ -7,6 +7,7 @@ import {
 } from 'react'
 import type { Track } from '@radio/shared'
 import { mediaUrl } from '../lib/api'
+import { playFoley, unlockDeckFoley } from '../lib/deck-foley'
 
 type PlayerState = {
   playlistId: string | null
@@ -31,6 +32,8 @@ const initial: PlayerState = {
 export const usePlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [state, setState] = useState<PlayerState>(initial)
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   const current = state.queue[state.index] ?? null
 
@@ -56,14 +59,23 @@ export const usePlayer = () => {
 
   const toggle = useCallback(() => {
     const audio = audioRef.current
-    if (!audio) return
+    if (!audio || stateRef.current.queue.length === 0) return
+    unlockDeckFoley()
     if (audio.paused) {
+      playFoley('needleDown')
       void audio.play()
       setState((s) => ({ ...s, playing: true }))
     } else {
+      playFoley('needleUp')
       audio.pause()
       setState((s) => ({ ...s, playing: false }))
     }
+  }, [])
+
+  const pause = useCallback(() => {
+    const audio = audioRef.current
+    audio?.pause()
+    setState((s) => (s.playing ? { ...s, playing: false } : s))
   }, [])
 
   const seek = useCallback((time: number) => {
@@ -74,6 +86,11 @@ export const usePlayer = () => {
   }, [])
 
   const playAt = useCallback((index: number) => {
+    if (stateRef.current.queue.length === 0) return
+    if (!stateRef.current.playing) {
+      unlockDeckFoley()
+      playFoley('needleDown')
+    }
     setState((s) => {
       if (s.index === index && s.playing) {
         return { ...s, playing: true }
@@ -183,6 +200,7 @@ export const usePlayer = () => {
     current,
     loadQueue,
     toggle,
+    pause,
     seek,
     playAt,
     next,

@@ -6,6 +6,11 @@ export const easeRoom = [0.22, 1, 0.36, 1] as const
 /** Seconds. Keep in lockstep with `--motion` (380ms). */
 export const durationRoom = 0.38
 
+/** Keep in lockstep with `--motion-arm` (700ms). */
+export const durationArmMs = 700
+
+export const easeRoomCss = 'cubic-bezier(0.22, 1, 0.36, 1)'
+
 export const roomTransition: Transition = {
   duration: durationRoom,
   ease: easeRoom,

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { MANUAL_PLAYLIST_ID, analogueTheme, type Track } from '@radio/shared'
 import { mediaUrl, formatTime, type PlaylistSummary } from '../lib/api'
+import { playFoley, unlockDeckFoley } from '../lib/deck-foley'
 import { fade, fadeLift, roomTransition } from '../lib/motion'
 import type { PlayerApi } from '../hooks/use-player'
 import { ImportFlow } from './import-flow'
@@ -11,6 +12,12 @@ import { CueSlider } from './cue-slider'
 import { PressingBin } from './pressing-bin'
 import { Turntable } from './turntable'
 import { VuMeters } from './vu-meter'
+import {
+  measureDiscFlight,
+  prefersReducedMotion,
+  VinylFlyer,
+  type DiscFlight,
+} from './vinyl-flyer'
 
 type Props = {
   playlists: PlaylistSummary[]
@@ -37,10 +44,15 @@ export const RadioShell = ({
   error,
   loading,
 }: Props) => {
-  const { current, state, playAt, toggle, next, prev, seek } = player
+  const { current, state, playAt, toggle, next, prev, seek, pause } = player
   const [sleeve, setSleeve] = useState<'album' | 'acquire' | null>(null)
+  const [flight, setFlight] = useState<DiscFlight | null>(null)
+  const [discLanded, setDiscLanded] = useState(false)
+  const flightKey = useRef(0)
+  const openSleeveAfterLand = useRef(false)
   const sleeveOpen = sleeve !== null
   const albumSleeveOpen = sleeve === 'album'
+  const awaitingDisc = flight !== null
   const stageRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -107,22 +119,96 @@ export const RadioShell = ({
       }
       if (event.code === 'Space') {
         event.preventDefault()
-        toggle()
+        if (!awaitingDisc) toggle()
       }
       if (event.code === 'ArrowRight') next()
       if (event.code === 'ArrowLeft') prev()
-      if (event.code === 'KeyC' && activePlaylistId) {
+      if (event.code === 'KeyC' && activePlaylistId && !awaitingDisc) {
         setSleeve((current) => (current === 'album' ? null : 'album'))
       }
       if (event.code === 'Escape') setSleeve(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [toggle, next, prev, activePlaylistId])
+  }, [toggle, next, prev, activePlaylistId, awaitingDisc])
+
+  const onDiscLanded = useCallback(() => {
+    playFoley('drop')
+    setDiscLanded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!discLanded || !flight) return
+    const ready =
+      Boolean(error) ||
+      !activePlaylistId ||
+      state.playlistId === activePlaylistId
+    const finishPlace = () => {
+      setFlight(null)
+      setDiscLanded(false)
+      if (openSleeveAfterLand.current) {
+        openSleeveAfterLand.current = false
+        setSleeve('album')
+      }
+    }
+
+    if (ready) {
+      finishPlace()
+      return
+    }
+    const timeout = window.setTimeout(finishPlace, 1600)
+    return () => window.clearTimeout(timeout)
+  }, [discLanded, flight, activePlaylistId, state.playlistId, error])
+
+  const placeDisc = (id: string, origin: HTMLElement) => {
+    unlockDeckFoley()
+    if (state.playing) {
+      playFoley('needleUp')
+      pause()
+    }
+    playFoley('sleeve')
+
+    const picked = playlists.find((item) => item.playlistId === id)
+    const nextCover = picked?.coverVideoId
+      ? mediaUrl(id, picked.coverVideoId, 'thumb')
+      : null
+
+    if (prefersReducedMotion()) {
+      openSleeveAfterLand.current = false
+      onSelectPlaylist(id)
+      playFoley('drop')
+      setSleeve('album')
+      return
+    }
+
+    const measured = measureDiscFlight(origin)
+    if (!measured) {
+      openSleeveAfterLand.current = false
+      onSelectPlaylist(id)
+      playFoley('drop')
+      setSleeve('album')
+      return
+    }
+
+    openSleeveAfterLand.current = true
+    setSleeve(null)
+    flightKey.current += 1
+    setDiscLanded(false)
+    setFlight({
+      key: flightKey.current,
+      cover: nextCover,
+      ...measured,
+    })
+    onSelectPlaylist(id)
+  }
 
   return (
     <MotionConfig reducedMotion="user" transition={roomTransition}>
-    <div ref={stageRef} className="stage relative min-h-dvh overflow-hidden">
+    <div
+      ref={stageRef}
+      className="stage relative min-h-dvh overflow-hidden"
+      onPointerDown={unlockDeckFoley}
+    >
       <audio ref={player.audioRef} preload="metadata" crossOrigin="anonymous" />
 
       {cover ? (
@@ -176,7 +262,9 @@ export const RadioShell = ({
             onPrev={prev}
             onNext={next}
             onShuffle={player.toggleShuffle}
-            disabled={!current}
+            disabled={!current || awaitingDisc}
+            awaitingDisc={awaitingDisc}
+            discId={activePlaylistId}
           >
             <div className="console-readout">
               <div>
@@ -225,6 +313,10 @@ export const RadioShell = ({
         </div>
       </div>
 
+      {flight ? (
+        <VinylFlyer key={flight.key} flight={flight} onLanded={onDiscLanded} />
+      ) : null}
+
       <button
         type="button"
         aria-label="Close sleeve"
@@ -239,22 +331,24 @@ export const RadioShell = ({
         playlists={playlists}
         activePlaylistId={activePlaylistId}
         sleeveOpen={albumSleeveOpen}
-        onSelect={(id) => {
+        lockScroll={awaitingDisc}
+        onSelect={(id, origin) => {
+          if (awaitingDisc) return
           if (id === activePlaylistId) {
-            setSleeve((current) => (current === 'album' ? null : 'album'))
+            setSleeve((currentSleeve) => (currentSleeve === 'album' ? null : 'album'))
             return
           }
-          onSelectPlaylist(id)
-          setSleeve('album')
+          placeDisc(id, origin)
         }}
         onSynced={onSynced}
         error={error}
         acquire={
           <ImportFlow
             open={sleeve === 'acquire'}
-            onOpen={() =>
+            onOpen={() => {
+              if (awaitingDisc) return
               setSleeve((current) => (current === 'acquire' ? null : 'acquire'))
-            }
+            }}
           />
         }
       >
@@ -266,7 +360,7 @@ export const RadioShell = ({
           currentId={current?.videoId ?? null}
           playlistTitle={playlistTitle}
           cover={linerArt}
-          onPlayTrack={playAt}
+          onPlayTrack={awaitingDisc ? () => undefined : playAt}
           canEditTracks={canEditTracks}
           onRemoveVideo={onRemoveVideo}
           onImported={(id) => {
