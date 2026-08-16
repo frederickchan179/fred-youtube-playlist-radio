@@ -7,7 +7,7 @@ export const ImportFlow = ({ open = false, onOpen }: Props) => (
   <div className="pressing-slot">
     <button
       type="button"
-      className="pressing pressing-acquire"
+      className="pressing pressing-special pressing-acquire"
       onClick={onOpen}
       aria-expanded={open}
       aria-label="Acquire a pressing from YouTube"

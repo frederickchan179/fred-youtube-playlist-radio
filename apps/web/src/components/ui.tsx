@@ -1,8 +1,10 @@
 import type { Track } from '@radio/shared'
 import { formatTime } from '../lib/api'
 
+type ListedTrack = Track & { sourcePlaylistId?: string }
+
 type TrackListProps = {
-  tracks: Track[]
+  tracks: ListedTrack[]
   currentVideoId: string | null
   onPlayTrack: (index: number) => void
   canEditTracks?: boolean
@@ -41,7 +43,7 @@ export const TrackList = ({
         const isPlaying = track.videoId === currentVideoId
         return (
           <div
-            key={track.videoId}
+            key={`${track.sourcePlaylistId ?? ''}:${track.videoId}:${index}`}
             className="liner-row px-1 py-2.5"
             data-active={isPlaying ? 'true' : 'false'}
           >

@@ -1,4 +1,8 @@
-import type { PlaylistManifest, SyncProgress, SyncSummary } from '@radio/shared'
+import type { PlaylistManifest, SyncProgress, SyncSummary, Track } from '@radio/shared'
+
+export type QueuedTrack = Track & {
+  sourcePlaylistId: string
+}
 
 export type PlaylistSummary = {
   playlistId: string
@@ -80,6 +84,11 @@ export const fetchPlaylist = async (
   playlistId: string,
 ): Promise<PlaylistManifest> => {
   return fetchJson<PlaylistManifest>(`/api/playlists/${playlistId}`)
+}
+
+export const fetchOnAir = async (): Promise<QueuedTrack[]> => {
+  const data = await fetchJson<{ tracks: QueuedTrack[] }>('/api/on-air')
+  return data.tracks
 }
 
 export const removeTrackFromPlaylist = async (

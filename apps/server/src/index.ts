@@ -21,6 +21,8 @@ import {
 } from '@radio/shared/paths'
 import {
   MANUAL_PLAYLIST_ID,
+  ON_AIR_PLAYLIST_ID,
+  ON_AIR_PLAYLIST_TITLE,
   playlistUrlSchema,
   type PlaylistManifest,
   type SyncSummary,
@@ -166,6 +168,34 @@ app.get('/api/playlists', async (c) => {
   }
   playlists.sort((a, b) => a.title.localeCompare(b.title))
   return c.json({ playlists })
+})
+
+app.get('/api/on-air', async (c) => {
+  const ids = await listPlaylistIds()
+  const albums: Array<{ title: string; playlistId: string; tracks: PlaylistManifest['tracks'] }> =
+    []
+  for (const id of ids) {
+    const manifest = await loadManifest(id)
+    if (!manifest) continue
+    albums.push({
+      title: manifest.title,
+      playlistId: manifest.playlistId,
+      tracks: manifest.tracks.filter((track) => track.status === 'ready'),
+    })
+  }
+  albums.sort((a, b) => a.title.localeCompare(b.title))
+
+  const tracks = albums.flatMap((album) =>
+    [...album.tracks]
+      .sort((a, b) => a.index - b.index)
+      .map((track) => ({ ...track, sourcePlaylistId: album.playlistId })),
+  )
+
+  return c.json({
+    playlistId: ON_AIR_PLAYLIST_ID,
+    title: ON_AIR_PLAYLIST_TITLE,
+    tracks,
+  })
 })
 
 app.get('/api/playlists/:id', async (c) => {

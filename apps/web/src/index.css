@@ -974,7 +974,7 @@ button {
   gap: 0.22rem;
 }
 
-.bin[data-spines='true'] .pressing:not(.pressing-acquire) {
+.bin[data-spines='true'] .pressing:not(.pressing-special) {
   width: 1.14rem;
   transition: width var(--motion) var(--ease);
 }
@@ -1010,8 +1010,8 @@ button {
   z-index: 6;
 }
 
-.bin[data-spines='true'] .pressing-slot:hover .pressing:not(.pressing-acquire),
-.bin[data-spines='true'] .pressing-slot:focus-within .pressing:not(.pressing-acquire),
+.bin[data-spines='true'] .pressing-slot:hover .pressing:not(.pressing-special),
+.bin[data-spines='true'] .pressing-slot:focus-within .pressing:not(.pressing-special),
 .bin[data-spines='true'] .pressing[data-active='true'] {
   width: 7.4rem;
 }
@@ -1044,7 +1044,7 @@ button {
   pointer-events: none;
 }
 
-.bin[data-spines='true'] .pressing-acquire {
+.bin[data-spines='true'] .pressing-special {
   width: 7.4rem;
 }
 
@@ -1106,7 +1106,8 @@ button {
   filter: saturate(0.88) contrast(1.04);
 }
 
-.pressing-acquire .pressing-jacket {
+.pressing-acquire .pressing-jacket,
+.pressing-on-air .pressing-jacket {
   display: grid;
   place-items: center;
   rotate: 0deg;
@@ -1137,7 +1138,8 @@ button {
   mix-blend-mode: screen;
 }
 
-.pressing-acquire .pressing-sticker {
+.pressing-acquire .pressing-sticker,
+.pressing-on-air .pressing-sticker {
   background: linear-gradient(180deg, #efe6da 0%, #d8c8b4 100%);
 }
 
@@ -1511,7 +1513,7 @@ button {
   .cut-index,
   .cut-title,
   .tonearm-swing,
-  .bin[data-spines='true'] .pressing:not(.pressing-acquire),
+  .bin[data-spines='true'] .pressing:not(.pressing-special),
   .bin[data-spines='true'] .pressing-vinyl,
   .bin[data-spines='true'] .pressing-sticker,
   .bin[data-spines='true'] .pressing-pin,

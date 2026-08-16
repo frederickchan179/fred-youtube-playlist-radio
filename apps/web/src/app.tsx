@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { Track } from '@radio/shared'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ON_AIR_PLAYLIST_ID } from '@radio/shared'
 import { usePlayer } from './hooks/use-player'
 import {
+  fetchOnAir,
   fetchPlaylist,
   fetchPlaylists,
   removeTrackFromPlaylist,
   type PlaylistSummary,
+  type QueuedTrack,
 } from './lib/api'
 import { RadioShell } from './components/radio-shell'
 
@@ -13,10 +15,11 @@ export const App = () => {
   const player = usePlayer()
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([])
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
-  const [tracks, setTracks] = useState<Track[]>([])
+  const [tracks, setTracks] = useState<QueuedTrack[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [libraryVersion, setLibraryVersion] = useState(0)
+  const lastLoadedPlaylistId = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -27,6 +30,7 @@ export const App = () => {
         if (cancelled) return
         setPlaylists(list)
         setActivePlaylistId((selectedId) => {
+          if (selectedId === ON_AIR_PLAYLIST_ID) return selectedId
           if (selectedId && list.some((playlist) => playlist.playlistId === selectedId)) {
             return selectedId
           }
@@ -49,18 +53,29 @@ export const App = () => {
   useEffect(() => {
     if (!activePlaylistId) {
       setTracks([])
+      lastLoadedPlaylistId.current = null
       return
     }
+
+    const switchedPlaylist = lastLoadedPlaylistId.current !== activePlaylistId
+    lastLoadedPlaylistId.current = activePlaylistId
+    const isOnAir = activePlaylistId === ON_AIR_PLAYLIST_ID
 
     let cancelled = false
     ;(async () => {
       try {
         setLoading(true)
-        const manifest = await fetchPlaylist(activePlaylistId)
+        const readyTracks = isOnAir
+          ? await fetchOnAir()
+          : (await fetchPlaylist(activePlaylistId)).tracks
+              .filter((track) => track.status === 'ready')
+              .map((track) => ({ ...track, sourcePlaylistId: activePlaylistId }))
         if (cancelled) return
-        const readyTracks = manifest.tracks.filter((track) => track.status === 'ready')
         setTracks(readyTracks)
-        player.loadQueue(activePlaylistId, readyTracks, 0, { autoplay: false })
+        player.loadQueue(activePlaylistId, readyTracks, 0, {
+          autoplay: false,
+          shuffle: switchedPlaylist && isOnAir ? true : undefined,
+        })
         setError(null)
       } catch (err) {
         if (!cancelled) {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
-import { MANUAL_PLAYLIST_ID, analogueTheme, type Track } from '@radio/shared'
-import { mediaUrl, formatTime, type PlaylistSummary } from '../lib/api'
+import { MANUAL_PLAYLIST_ID, analogueTheme, ON_AIR_PLAYLIST_ID, ON_AIR_PLAYLIST_TITLE } from '@radio/shared'
+import { mediaUrl, formatTime, type PlaylistSummary, type QueuedTrack } from '../lib/api'
 import { unlockDeckFoley } from '../lib/deck-foley'
 import { fade, fadeLift, roomTransition } from '../lib/motion'
 import type { PlayerApi } from '../hooks/use-player'
@@ -9,6 +9,7 @@ import { usePlaceOnPlatter } from '../hooks/use-place-on-platter'
 import { useRoomLight } from '../hooks/use-room-light'
 import { ImportFlow } from './import-flow'
 import { Liner } from './liner'
+import { OnAirJacket } from './on-air-jacket'
 import { CueSlider } from './cue-slider'
 import { PressingBin } from './pressing-bin'
 import { Turntable } from './turntable'
@@ -20,7 +21,7 @@ type Sleeve = 'album' | 'acquire' | null
 type Props = {
   playlists: PlaylistSummary[]
   activePlaylistId: string | null
-  tracks: Track[]
+  tracks: QueuedTrack[]
   onSelectPlaylist: (id: string) => void
   onImported: (playlistId: string) => void
   onSynced: (playlistId: string) => void
@@ -69,15 +70,18 @@ export const RadioShell = ({
   const isTypingInField = (target: EventTarget | null) =>
     target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
 
-  const playingCover =
-    currentTrack && activePlaylistId
-      ? mediaUrl(activePlaylistId, currentTrack.videoId, 'thumb')
-      : null
+  const playingCover = currentTrack
+    ? mediaUrl(currentTrack.sourcePlaylistId, currentTrack.videoId, 'thumb')
+    : null
 
+  const isOnAir = activePlaylistId === ON_AIR_PLAYLIST_ID
   const playlist = playlists.find((item) => item.playlistId === activePlaylistId)
-  const playlistTitle = playlist?.title ?? 'Library'
-  const linerArt =
-    activePlaylistId && playlist?.coverVideoId
+  const playlistTitle = isOnAir
+    ? ON_AIR_PLAYLIST_TITLE
+    : (playlist?.title ?? 'Library')
+  const linerArt = isOnAir
+    ? playingCover
+    : activePlaylistId && playlist?.coverVideoId
       ? mediaUrl(activePlaylistId, playlist.coverVideoId, 'thumb')
       : playingCover
 
@@ -249,6 +253,14 @@ export const RadioShell = ({
           onSelect={pickJacket}
           onSynced={onSynced}
           error={error}
+          station={
+            <OnAirJacket
+              active={isOnAir}
+              sleeveOpen={albumSleeveOpen && isOnAir}
+              cutCount={isOnAir ? tracks.length : playlists.reduce((sum, album) => sum + album.trackCount, 0)}
+              onSelect={pickJacket}
+            />
+          }
           acquire={
             <ImportFlow
               open={sleeve === 'acquire'}

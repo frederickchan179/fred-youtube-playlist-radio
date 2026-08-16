@@ -10,6 +10,7 @@ type Props = {
   onSelect: (id: string, origin: HTMLElement) => void
   onSynced: (id: string) => void
   error: string | null
+  station?: ReactNode
   acquire?: ReactNode
   children?: ReactNode
 }
@@ -24,6 +25,7 @@ export const PressingBin = ({
   onSelect,
   onSynced,
   error,
+  station,
   acquire,
   children,
 }: Props) => {
@@ -62,6 +64,7 @@ export const PressingBin = ({
       {children}
       <div className="bin-shelf" aria-hidden />
       <div ref={railRef} className="sleeve-rail">
+        {station}
         {playlists.length === 0 && error ? (
           <p
             className="self-center px-1 text-[0.68rem] uppercase"

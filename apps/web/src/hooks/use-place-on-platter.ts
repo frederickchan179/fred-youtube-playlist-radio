@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mediaUrl, type PlaylistSummary } from '../lib/api'
+import { ON_AIR_PLAYLIST_ID } from '@radio/shared'
 import { playFoley, unlockDeckFoley } from '../lib/deck-foley'
 import {
   measureDiscFlight,
@@ -43,6 +44,11 @@ export const usePlaceOnPlatter = ({
   const isDiscFlying = flyingDisc !== null
 
   const coverUrlFor = (playlistId: string): string | null => {
+    if (playlistId === ON_AIR_PLAYLIST_ID) {
+      const albumWithArt = playlists.find((item) => item.coverVideoId)
+      if (!albumWithArt?.coverVideoId) return null
+      return mediaUrl(albumWithArt.playlistId, albumWithArt.coverVideoId, 'thumb')
+    }
     const playlist = playlists.find((item) => item.playlistId === playlistId)
     if (!playlist?.coverVideoId) return null
     return mediaUrl(playlistId, playlist.coverVideoId, 'thumb')

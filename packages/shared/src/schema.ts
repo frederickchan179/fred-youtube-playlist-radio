@@ -28,6 +28,8 @@ export type Track = z.infer<typeof trackSchema>
 export type PlaylistManifest = z.infer<typeof playlistManifestSchema>
 export const MANUAL_PLAYLIST_ID = 'manual_saved_videos'
 export const MANUAL_PLAYLIST_TITLE = 'Saved videos'
+export const ON_AIR_PLAYLIST_ID = 'on_air'
+export const ON_AIR_PLAYLIST_TITLE = 'On Air'
 
 export const playlistUrlSchema = z
   .string()

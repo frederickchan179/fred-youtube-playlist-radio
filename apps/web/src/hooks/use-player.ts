@@ -5,13 +5,12 @@ import {
   useState,
   type RefObject,
 } from 'react'
-import type { Track } from '@radio/shared'
-import { mediaUrl } from '../lib/api'
+import { mediaUrl, type QueuedTrack } from '../lib/api'
 import { playFoley, unlockDeckFoley } from '../lib/deck-foley'
 
 type PlayerState = {
   playlistId: string | null
-  queue: Track[]
+  queue: QueuedTrack[]
   index: number
   playing: boolean
   currentTime: number
@@ -40,9 +39,9 @@ export const usePlayer = () => {
   const loadQueue = useCallback(
     (
       playlistId: string,
-      tracks: Track[],
+      tracks: QueuedTrack[],
       startIndex = 0,
-      options?: { autoplay?: boolean },
+      options?: { autoplay?: boolean; shuffle?: boolean },
     ) => {
       setState((previous) => ({
         ...previous,
@@ -52,6 +51,7 @@ export const usePlayer = () => {
         currentTime: 0,
         duration: 0,
         playing: options?.autoplay ?? false,
+        shuffle: options?.shuffle ?? previous.shuffle,
       }))
     },
     [],
@@ -143,13 +143,14 @@ export const usePlayer = () => {
   // Bind audio element source when track changes
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio || !state.playlistId || !currentTrack) return
+    if (!audio || !currentTrack) return
 
-    const url = mediaUrl(state.playlistId, currentTrack.videoId, 'audio')
+    const url = mediaUrl(currentTrack.sourcePlaylistId, currentTrack.videoId, 'audio')
+    const sourceKey = `${currentTrack.sourcePlaylistId}:${currentTrack.videoId}`
     const needsLoad =
-      !audio.src.endsWith(url) && audio.dataset.videoId !== currentTrack.videoId
-    if (needsLoad || audio.dataset.videoId !== currentTrack.videoId) {
-      audio.dataset.videoId = currentTrack.videoId
+      !audio.src.endsWith(url) && audio.dataset.sourceKey !== sourceKey
+    if (needsLoad || audio.dataset.sourceKey !== sourceKey) {
+      audio.dataset.sourceKey = sourceKey
       audio.src = url
       audio.load()
     }
@@ -162,7 +163,7 @@ export const usePlayer = () => {
     } else {
       audio.pause()
     }
-  }, [currentTrack, state.playlistId, state.playing, state.index])
+  }, [currentTrack, state.playing, state.index])
 
   useEffect(() => {
     const audio = audioRef.current

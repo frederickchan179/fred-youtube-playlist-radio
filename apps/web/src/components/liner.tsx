@@ -1,14 +1,14 @@
 import { AnimatePresence, motion } from 'motion/react'
-import type { Track } from '@radio/shared'
 import { fade } from '../lib/motion'
 import { ImportForm } from './import-form'
 import { TrackList } from './ui'
+import type { QueuedTrack } from '../lib/api'
 
 type Props = {
   open: boolean
   mode: 'album' | 'acquire'
   onClose: () => void
-  tracks: Track[]
+  tracks: QueuedTrack[]
   currentVideoId: string | null
   playlistTitle: string
   cover: string | null
