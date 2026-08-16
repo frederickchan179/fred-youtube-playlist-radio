@@ -1,4 +1,4 @@
-import { mkdir, readdir, unlink } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
@@ -8,6 +8,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { z } from 'zod'
 import {
+  dropTrackFromLibrary,
   importFromUrl,
   readManifest,
   writeManifestAtomic,
@@ -79,21 +80,6 @@ const touchJob = (
   }
   jobs.set(job.id, next)
   return next
-}
-
-const removeTrackFiles = async (
-  playlistId: string,
-  videoId: string,
-): Promise<void> => {
-  const dir = path.join(playlistDir(repoRoot, playlistId), 'tracks')
-  if (!existsSync(dir)) return
-  const files = await readdir(dir)
-  const toDelete = files.filter((name) => name.startsWith(`${videoId}.`))
-  await Promise.all(
-    toDelete.map(async (name) => {
-      await unlink(path.join(dir, name)).catch(() => undefined)
-    }),
-  )
 }
 
 const runImportJob = async (jobId: string): Promise<void> => {
@@ -300,7 +286,7 @@ app.delete('/api/playlists/:id/tracks/:videoId', async (c) => {
     return c.json({ error: 'Track not found' }, 404)
   }
 
-  await removeTrackFiles(playlistId, videoId)
+  await dropTrackFromLibrary(repoRoot, playlistId, videoId)
   const nextManifest: PlaylistManifest = {
     ...manifest,
     syncedAt: new Date().toISOString(),

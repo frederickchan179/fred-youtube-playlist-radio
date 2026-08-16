@@ -28,7 +28,7 @@ program
 program
   .command('sync')
   .argument('[playlistId]', 'Optional playlist id; syncs all if omitted')
-  .description('Sync local playlists (only download missing / failed tracks)')
+  .description('Match local playlists to the latest YouTube playlist state')
   .action(async (playlistId?: string) => {
     try {
       await syncExisting(repoRoot, playlistId)

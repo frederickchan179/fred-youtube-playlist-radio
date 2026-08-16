@@ -70,7 +70,7 @@ export const SyncPlaylistButton = ({
     if (running) return 'Syncing…'
     if (!canSync) return 'Only YouTube playlists can sync'
     if (job?.status === 'done' && job.summary) {
-      return `Updated · ${job.summary.added} new`
+      return `Matched YouTube · +${job.summary.added} · −${job.summary.removedRemote}`
     }
     return playlistTitle ? `Sync “${playlistTitle}”` : 'Sync'
   })()

@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile, access, readdir } from 'node:fs/promises'
+import { mkdir, readFile, rename, writeFile, access, readdir, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { constants } from 'node:fs'
 import { execa } from 'execa'
@@ -183,6 +183,39 @@ const resolveAudioRel = async (
   return null
 }
 
+const forgetArchiveEntry = async (
+  repoRoot: string,
+  playlistId: string,
+  videoId: string,
+): Promise<void> => {
+  const file = archivePath(repoRoot, playlistId)
+  if (!(await fileExists(file))) return
+  const lines = (await readFile(file, 'utf8')).split('\n')
+  const kept = lines.filter((line) => {
+    const tokens = line.trim().split(/\s+/)
+    return tokens[tokens.length - 1] !== videoId
+  })
+  await writeFile(file, kept.join('\n'))
+}
+
+/** Delete local audio/thumb and the yt-dlp archive line so a later add can download again. */
+export const dropTrackFromLibrary = async (
+  repoRoot: string,
+  playlistId: string,
+  videoId: string,
+): Promise<void> => {
+  const dir = tracksDir(repoRoot, playlistId)
+  if (await fileExists(dir)) {
+    const files = await readdir(dir)
+    await Promise.all(
+      files
+        .filter((name) => name.startsWith(`${videoId}.`))
+        .map((name) => unlink(path.join(dir, name)).catch(() => undefined)),
+    )
+  }
+  await forgetArchiveEntry(repoRoot, playlistId, videoId)
+}
+
 export const syncPlaylist = async (
   repoRoot: string,
   sourceUrl: string,
@@ -307,16 +340,20 @@ export const syncPlaylist = async (
     byId.delete(videoId)
   }
 
-  for (const leftover of byId.values()) {
-    removedRemote += 1
-    nextTracks.push({
-      ...leftover,
-      status: leftover.status === 'ready' ? 'removed_remote' : leftover.status,
-      lastSeenAt: now,
+  const dropped = [...byId.values()]
+  if (dropped.length > 0) {
+    report({
+      phase: 'meta',
+      message:
+        dropped.length === 1
+          ? 'Dropping 1 cut no longer on YouTube…'
+          : `Dropping ${dropped.length} cuts no longer on YouTube…`,
     })
+    for (const leftover of dropped) {
+      removedRemote += 1
+      await dropTrackFromLibrary(repoRoot, playlistId, leftover.videoId)
+    }
   }
-
-  nextTracks.sort((a, b) => a.index - b.index)
 
   const manifest: PlaylistManifest = {
     version: 1,
@@ -341,13 +378,13 @@ export const syncPlaylist = async (
 
   report({
     phase: 'done',
-    message: `Ready: ${summary.totalReady} tracks · +${summary.added} new`,
+    message: `Matched YouTube · ${summary.totalReady} ready · +${summary.added} · −${summary.removedRemote}`,
   })
 
   if (!quiet) {
     console.log(`\n✓ ${summary.title}`)
     console.log(
-      `  +${summary.added} new · ~${summary.updated} meta · ${summary.failed} failed · ${summary.removedRemote} removed-remote · ${summary.totalReady} ready`,
+      `  +${summary.added} new · ~${summary.updated} meta · −${summary.removedRemote} dropped · ${summary.failed} failed · ${summary.totalReady} ready`,
     )
   }
 
