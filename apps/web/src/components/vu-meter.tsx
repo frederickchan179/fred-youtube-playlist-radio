@@ -135,7 +135,7 @@ export const VuMeters = ({ audioRef, playing }: Props) => {
   }, [audioRef, playing])
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="vu-pair">
       <MeterFace label="L" needleRef={leftRef} />
       <MeterFace label="R" needleRef={rightRef} />
     </div>

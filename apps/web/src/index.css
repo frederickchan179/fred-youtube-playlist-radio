@@ -165,6 +165,7 @@ button {
 .stage {
   display: flex;
   flex-direction: column;
+  width: 100%;
   min-height: 100dvh;
   height: 100dvh;
   background:
@@ -232,18 +233,39 @@ button {
   position: relative;
   z-index: 10;
   display: grid;
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
-  place-items: center;
-  padding: 4.15rem 1.5rem 0.35rem;
+  width: 100%;
+  align-items: stretch;
+  justify-items: stretch;
+  padding:
+    calc(3.75rem + env(safe-area-inset-top, 0px))
+    calc(1rem + env(safe-area-inset-right, 0px))
+    0.45rem
+    calc(1rem + env(safe-area-inset-left, 0px));
 }
 
 .deck {
   position: relative;
-  width: min(74rem, 96vw, calc((100dvh - 13.25rem) * 1.62));
-  height: auto;
-  aspect-ratio: 1.62 / 1;
-  max-height: calc(100dvh - 13.25rem);
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+@media (min-width: 961px) {
+  .deck-slot {
+    place-items: center;
+    padding: 4.15rem 1.5rem 0.35rem;
+  }
+
+  .deck {
+    width: min(74rem, 96vw, calc((100dvh - 13.25rem) * 1.62));
+    height: auto;
+    aspect-ratio: 1.62 / 1;
+    max-height: calc(100dvh - 13.25rem);
+  }
 }
 
 /* —— Physical machine —— */
@@ -708,38 +730,6 @@ button {
   padding: 0.15rem 0.15rem 0.35rem;
 }
 
-@media (max-width: 960px) {
-  .deck-slot {
-    padding: 4.4rem 1rem 0.75rem;
-  }
-
-  .deck {
-    width: min(32rem, 94vw);
-    aspect-ratio: 0.92 / 1;
-  }
-
-  .machine-plinth {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(11rem, 1fr);
-  }
-
-  .platter-well {
-    width: min(100%, 58vw);
-    height: auto;
-    justify-self: center;
-  }
-
-  .deck-console {
-    min-height: 11rem;
-    padding-top: 1.1rem;
-  }
-
-  .console-readout h1 {
-    line-clamp: 2;
-    -webkit-line-clamp: 2;
-  }
-}
-
 .cue-rail {
   position: relative;
   margin-top: 0.78rem;
@@ -859,6 +849,12 @@ button {
     0 0 0 2px rgb(196 165 116 / 0.45);
 }
 
+.vu-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
 .deck-keys {
   display: flex;
   flex-direction: column;
@@ -931,7 +927,7 @@ button {
 .bin {
   position: relative;
   z-index: 40;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .bin-shelf {
@@ -997,9 +993,11 @@ button {
   transition: transform var(--motion) var(--ease);
 }
 
-.pressing-slot:hover {
-  z-index: 2;
-  transform: translateY(-0.72rem);
+@media (hover: hover) and (pointer: fine) {
+  .pressing-slot:hover {
+    z-index: 2;
+    transform: translateY(-0.72rem);
+  }
 }
 
 .pressing-spine-title {
@@ -1524,6 +1522,182 @@ button {
 
 .field:disabled {
   opacity: 0.5;
+}
+
+@media (max-width: 960px) {
+  .stage > header {
+    padding-top: calc(1.15rem + env(safe-area-inset-top, 0px));
+    padding-left: calc(1.1rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1.1rem + env(safe-area-inset-right, 0px));
+  }
+
+  .deck-slot {
+    width: 100%;
+    align-items: stretch;
+    justify-items: stretch;
+    padding:
+      calc(3.75rem + env(safe-area-inset-top, 0px))
+      calc(1rem + env(safe-area-inset-right, 0px))
+      0.45rem
+      calc(1rem + env(safe-area-inset-left, 0px));
+  }
+
+  .deck {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: unset;
+  }
+
+  .machine,
+  .machine-wood {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .machine-wood {
+    padding: 0.95rem;
+  }
+
+  .wood-screw-tl,
+  .wood-screw-tr {
+    top: 0.45rem;
+  }
+
+  .wood-screw-bl,
+  .wood-screw-br {
+    bottom: 0.45rem;
+  }
+
+  .wood-screw-tl,
+  .wood-screw-bl {
+    left: 0.45rem;
+  }
+
+  .wood-screw-tr,
+  .wood-screw-br {
+    right: 0.45rem;
+  }
+
+  .machine-plinth {
+    height: 100%;
+    min-height: 0;
+    container-type: size;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    padding: 0.55rem 0.6rem 0.5rem;
+  }
+
+  .platter-well {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    aspect-ratio: 1;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .deck-console {
+    min-height: 0;
+    height: auto;
+    gap: 0.55rem;
+    padding: 0.1rem 0.05rem 0.05rem 0.3rem;
+  }
+
+  .console-main,
+  .console-readout {
+    height: auto;
+  }
+
+  .console-readout {
+    gap: 0.55rem;
+    padding-right: 0.1rem;
+  }
+
+  .console-readout h1 {
+    font-size: clamp(1.12rem, 5vw, 1.55rem);
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+  }
+
+  .vu-pair {
+    max-width: 13.5rem;
+    gap: 0.45rem;
+  }
+
+  .deck-key {
+    width: 2.85rem;
+    height: 1.7rem;
+  }
+
+  .pressing,
+  .bin[data-spines='true'] .pressing-special {
+    width: 8.35rem;
+  }
+
+  .bin[data-spines='true'] .pressing-slot:hover .pressing:not(.pressing-special),
+  .bin[data-spines='true'] .pressing-slot:focus-within .pressing:not(.pressing-special),
+  .bin[data-spines='true'] .pressing[data-active='true'] {
+    width: 8.35rem;
+  }
+
+  .bin {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .liner {
+    width: min(40rem, calc(100vw - 2rem));
+    max-height: min(48dvh, 28rem);
+  }
+
+  .liner-inner {
+    max-height: min(48dvh, 28rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .machine-wood {
+    padding: 0.82rem;
+  }
+
+  .machine-plinth {
+    gap: 0.45rem;
+    padding: 0.45rem 0.5rem 0.4rem;
+  }
+
+  .cue-rail {
+    margin-top: 0.42rem;
+  }
+
+  .pressing,
+  .bin[data-spines='true'] .pressing-special,
+  .bin[data-spines='true'] .pressing-slot:hover .pressing:not(.pressing-special),
+  .bin[data-spines='true'] .pressing-slot:focus-within .pressing:not(.pressing-special),
+  .bin[data-spines='true'] .pressing[data-active='true'] {
+    width: 8.7rem;
+  }
+
+  .sleeve-rail {
+    gap: 0.85rem;
+    padding: 1.05rem 0 1.15rem;
+    scroll-padding-inline: 1.1rem;
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 1.1rem,
+      #000 calc(100% - 1.1rem),
+      transparent
+    );
+  }
+
+  .sleeve-rail::before,
+  .sleeve-rail::after {
+    width: 1.1rem;
+    min-width: 1.1rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
